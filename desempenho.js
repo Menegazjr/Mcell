@@ -41,9 +41,8 @@ async function renderDesempenho() {
     // Totais
     const totalFat  = vendas.reduce((s, v) => s + (parseFloat(v.valor) * (v.quantidade || 1)), 0);
     const totalApar = vendas.reduce((s, v) => s + (v.quantidade || 1), 0);
-    const faltaFat  = Math.max(0, metaIndFat - totalFat);
     const faltaApar = Math.max(0, Math.ceil(metaIndApar - totalApar));
-    const p1 = pct(totalFat, metaIndFat);
+    const p1 = pct(totalApar, metaIndApar);
     const p2 = pct(totalApar, metaIndApar);
     const ticketMed = totalApar > 0 ? totalFat / totalApar : 0;
 
@@ -90,10 +89,10 @@ async function renderDesempenho() {
 
       <!-- CARDS PRINCIPAIS -->
       <div class="cards-grid" style="margin-bottom:24px">
-        ${cardDesemp('Faturado', fmt(totalFat), fmt(metaIndFat), p1, 'blue')}
-        ${cardDesemp('Aparelhos', fmtNum(totalApar), fmtNum(Math.ceil(metaIndApar)), p2, 'green')}
-        ${cardDesemp('Faltam (R$)', faltaFat > 0 ? fmt(faltaFat) : '✓ Bateu!', 'Para a meta', null, faltaFat > 0 ? 'yellow' : 'green')}
-        ${cardDesemp('Faltam (Ap.)', faltaApar > 0 ? faltaApar + ' un.' : '✓ Bateu!', 'Para a meta', null, faltaApar > 0 ? 'yellow' : 'green')}
+        ${cardDesemp('Faturado', fmt(totalFat), totalApar + ' vendas no mês', null, 'blue')}
+        ${cardDesemp('Aparelhos Vendidos', fmtNum(totalApar), `Meta: ${Math.ceil(metaIndApar)} un.`, p1, 'green')}
+        ${cardDesemp('Meta Individual', Math.ceil(metaIndApar) + ' un.', `${p1}% atingido`, null, 'blue')}
+        ${cardDesemp('Faltam', faltaApar > 0 ? faltaApar + ' un.' : '✓ Bateu!', 'Para a meta de aparelhos', null, faltaApar > 0 ? 'yellow' : 'green')}
         ${cardDesemp('Ticket Médio', fmt(ticketMed), totalApar + ' vendas', null, 'blue')}
       </div>
 
@@ -103,24 +102,12 @@ async function renderDesempenho() {
 
         <div class="meta-track-row">
           <div class="meta-track-label">
-            <span>💰 Faturamento</span>
-            <span>${fmt(totalFat)} de ${fmt(metaIndFat)}</span>
+            <span>📱 Aparelhos vendidos</span>
+            <span>${totalApar} de ${Math.ceil(metaIndApar)} un.</span>
           </div>
           <div class="meta-track-bg">
             <div class="meta-track-fill" style="width:${p1}%;background:${progressColor(p1)}">
               <span class="meta-track-pct">${p1}%</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="meta-track-row">
-          <div class="meta-track-label">
-            <span>📱 Aparelhos</span>
-            <span>${totalApar} de ${Math.ceil(metaIndApar)} un.</span>
-          </div>
-          <div class="meta-track-bg">
-            <div class="meta-track-fill" style="width:${p2}%;background:${progressColor(p2)}">
-              <span class="meta-track-pct">${p2}%</span>
             </div>
           </div>
         </div>
@@ -139,7 +126,7 @@ async function renderDesempenho() {
       </div>
 
       <!-- MENSAGEM MOTIVACIONAL -->
-      ${renderMotivacao(p1, faltaFat, faltaApar, metaIndFat)}
+      ${renderMotivacao(p1, faltaApar)}
     `;
 
     // Gráfico
@@ -229,16 +216,13 @@ async function renderDesempenhoPara(vendedoraId) {
 
     const ativas      = vendedoras.filter(v => v.status === 'ativa');
     const numAtivas   = ativas.length || 1;
-    const metaFat     = meta?.meta_faturamento || 0;
     const metaApar    = meta?.meta_aparelhos   || 0;
-    const metaIndFat  = metaFat  / numAtivas;
     const metaIndApar = metaApar / numAtivas;
 
     const totalFat  = vendas.reduce((s, v) => s + (parseFloat(v.valor) * (v.quantidade || 1)), 0);
     const totalApar = vendas.reduce((s, v) => s + (v.quantidade || 1), 0);
-    const faltaFat  = Math.max(0, metaIndFat - totalFat);
     const faltaApar = Math.max(0, Math.ceil(metaIndApar - totalApar));
-    const p1 = pct(totalFat, metaIndFat);
+    const p1 = pct(totalApar, metaIndApar);
     const p2 = pct(totalApar, metaIndApar);
     const ticketMed = totalApar > 0 ? totalFat / totalApar : 0;
 
@@ -304,7 +288,7 @@ async function renderDesempenhoPara(vendedoraId) {
         </div>
       </div>
 
-      ${renderMotivacao(p1, faltaFat, faltaApar, metaIndFat)}
+      ${renderMotivacao(p1, faltaApar)}
     `;
 
     if (chartDesempenho) { chartDesempenho.destroy(); chartDesempenho = null; }
@@ -375,14 +359,14 @@ function renderUltimasVendas(vendas) {
     </div>`).join('');
 }
 
-function renderMotivacao(p1, faltaFat, faltaApar, metaIndFat) {
+function renderMotivacao(p1, faltaApar) {
   let icon, titulo, msg;
   if (p1 >= 100) {
     icon = '🏆'; titulo = 'Meta batida!';
     msg = 'Parabéns! Você superou sua meta do mês. Continue assim!';
   } else if (p1 >= 70) {
     icon = '🚀'; titulo = 'Quase lá!';
-    msg = `Faltam apenas ${fmt(faltaFat)} e ${faltaApar} aparelhos. Você consegue!`;
+    msg = `Faltam apenas ${faltaApar} aparelhos. Você consegue!`;
   } else if (p1 >= 40) {
     icon = '⚡'; titulo = 'Bora acelerar!';
     msg = `Você está em ${p1}% da meta. Foco nas vendas — ainda dá tempo!`;

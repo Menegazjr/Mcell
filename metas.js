@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// MCELL — METAS
+// MCELL — METAS (apenas aparelhos)
 // ═══════════════════════════════════════════════
 
 async function renderMetas() {
@@ -20,13 +20,10 @@ async function renderMetas() {
     ]);
 
     const numAtivas = vendedorasAtivas.length || 1;
-    const metaFat   = metaAtual?.meta_faturamento || 0;
-    const metaApar  = metaAtual?.meta_aparelhos   || 0;
-    const indFat    = metaFat  / numAtivas;
+    const metaApar  = metaAtual?.meta_aparelhos || 0;
     const indApar   = metaApar / numAtivas;
 
     page.innerHTML = `
-      <!-- META DO MÊS ATUAL -->
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title">◎ Meta — ${mesToNomeCompleto(currentMes)}/${currentAno}</div>
@@ -37,10 +34,8 @@ async function renderMetas() {
 
         ${metaAtual ? `
           <div class="cards-grid">
-            ${cardMeta('Meta Faturamento', fmt(metaFat), 'blue')}
-            ${cardMeta('Meta Aparelhos', fmtNum(metaApar) + ' un.', 'green')}
-            ${cardMeta('Meta Individual (Fat.)', fmt(indFat), 'yellow')}
-            ${cardMeta('Meta Individual (Ap.)', (indApar).toFixed(1) + ' un.', 'blue')}
+            ${cardMeta('Meta de Aparelhos', fmtNum(metaApar) + ' un.', 'green')}
+            ${cardMeta('Meta Individual', indApar.toFixed(1) + ' un.', 'blue')}
             ${cardMeta('Vendedoras Ativas', numAtivas, 'green')}
           </div>
           <p style="color:var(--text2);font-size:0.82rem;margin-top:8px">
@@ -54,7 +49,6 @@ async function renderMetas() {
         `}
       </div>
 
-      <!-- HISTÓRICO -->
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title">📅 Histórico de Metas</div>
@@ -94,7 +88,6 @@ function renderHistoricoMetas(metas) {
     <tr>
       <td><strong>${mesToNomeCompleto(m.mes)}</strong></td>
       <td>${m.ano}</td>
-      <td class="td-mono">${fmt(m.meta_faturamento)}</td>
       <td>${fmtNum(m.meta_aparelhos)} un.</td>
       <td>
         <button class="btn-ghost btn-sm btn-edit-meta" data-id="${m.id}">Editar</button>
@@ -103,7 +96,7 @@ function renderHistoricoMetas(metas) {
 
   return `
     <table>
-      <thead><tr><th>Mês</th><th>Ano</th><th>Meta Faturamento</th><th>Meta Aparelhos</th><th></th></tr></thead>
+      <thead><tr><th>Mês</th><th>Ano</th><th>Meta Aparelhos</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -126,13 +119,8 @@ function abrirFormMeta(meta) {
           <input type="number" id="fm-ano" min="2020" max="2099"
             value="${meta?.ano || currentAno}"/>
         </div>
-        <div class="form-group">
-          <label>Meta Faturamento (R$) *</label>
-          <input type="number" id="fm-fat" step="0.01" min="0"
-            value="${meta?.meta_faturamento || ''}" placeholder="140000"/>
-        </div>
-        <div class="form-group">
-          <label>Meta Aparelhos *</label>
+        <div class="form-group form-full">
+          <label>Meta de Aparelhos *</label>
           <input type="number" id="fm-apar" min="0"
             value="${meta?.meta_aparelhos || ''}" placeholder="140"/>
         </div>
@@ -155,10 +143,9 @@ function abrirFormMeta(meta) {
     try {
       await db.upsertMeta({
         ...(isEdit ? { id: meta.id } : {}),
-        mes:              parseInt(document.getElementById('fm-mes').value),
-        ano:              parseInt(document.getElementById('fm-ano').value),
-        meta_faturamento: parseFloat(document.getElementById('fm-fat').value),
-        meta_aparelhos:   parseInt(document.getElementById('fm-apar').value)
+        mes:            parseInt(document.getElementById('fm-mes').value),
+        ano:            parseInt(document.getElementById('fm-ano').value),
+        meta_aparelhos: parseInt(document.getElementById('fm-apar').value)
       });
       toast('Meta salva com sucesso!');
       closeModal();
