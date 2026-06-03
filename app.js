@@ -65,7 +65,13 @@ function navigateTo(page) {
   });
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
+  const activePage = document.getElementById(`page-${page}`);
+  activePage.classList.add('active');
+
+  // Sempre volta ao topo ao trocar de página
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  activePage.scrollTop = 0;
+  document.querySelector('.main-content').scrollTop = 0;
 
   const titles = {
     dashboard:   'Dashboard',

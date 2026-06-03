@@ -217,7 +217,9 @@ textarea { resize: vertical; min-height: 80px; }
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  max-height: calc(100vh - 130px);
 }
 .nav-item {
   display: flex;
@@ -258,6 +260,9 @@ textarea { resize: vertical; min-height: 80px; }
   gap: 10px;
   flex-shrink: 0;
   background: var(--bg2);
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
 }
 .user-avatar {
   width: 36px; height: 36px;
