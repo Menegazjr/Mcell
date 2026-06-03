@@ -180,8 +180,8 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── SIDEBAR ────────────────────────────────── */
 .sidebar {
   width: 240px;
-  height: 100%;
-  max-height: 100vh;
+  height: 100vh;
+  height: -webkit-fill-available;
   background: var(--bg2);
   border-right: 1px solid var(--border);
   display: flex;
@@ -219,7 +219,9 @@ textarea { resize: vertical; min-height: 80px; }
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  /* Safari fix: impede o nav de empurrar o user pra fora */
   max-height: calc(100vh - 130px);
+  max-height: calc(-webkit-fill-available - 130px);
 }
 .nav-item {
   display: flex;
@@ -260,8 +262,9 @@ textarea { resize: vertical; min-height: 80px; }
   gap: 10px;
   flex-shrink: 0;
   background: var(--bg2);
-  position: sticky;
-  bottom: 0;
+  /* Safari: sticky dentro de flex não funciona, usar margin-top auto */
+  margin-top: auto;
+  position: relative;
   z-index: 1;
 }
 .user-avatar {
