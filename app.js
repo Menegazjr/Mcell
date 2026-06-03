@@ -73,7 +73,8 @@ function navigateTo(page) {
     vendedoras:  'Vendedoras',
     metas:       'Metas',
     relatorios:  'Relatórios',
-    desempenho:  'Meu Desempenho'
+    desempenho:  'Meu Desempenho',
+    banco:       'Uso do Banco'
   };
   document.getElementById('topbar-title').textContent = titles[page] || page;
 
@@ -88,6 +89,7 @@ function refreshCurrentPage() {
     case 'metas':      renderMetas();      break;
     case 'relatorios': renderRelatorios(); break;
     case 'desempenho': renderDesempenho(); break;
+    case 'banco':      renderBanco();      break;
   }
 }
 

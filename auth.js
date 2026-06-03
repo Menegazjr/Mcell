@@ -91,6 +91,7 @@ async function loadUserProfile(user) {
   const adminOnly = role === 'admin';
   document.getElementById('nav-vendedoras').style.display = adminOnly ? '' : 'none';
   document.getElementById('nav-metas').style.display      = adminOnly ? '' : 'none';
+  document.getElementById('nav-banco').style.display      = adminOnly ? '' : 'none';
 }
 
 // ══════════════════════════════════════════════

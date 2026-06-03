@@ -1182,3 +1182,38 @@ tbody tr:hover td { background: var(--border); }
   .logo-text { font-size: 1.7rem; }
   .setup-step-line { width: 28px; }
 }
+
+/* ═══════════════════════════════════════════════
+   USO DO BANCO
+════════════════════════════════════════════════ */
+.banco-dicas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.banco-dica {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.dica-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.banco-dica strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.banco-dica p {
+  font-size: 0.82rem;
+  color: var(--text2);
+  line-height: 1.5;
+  margin: 0;
+}
