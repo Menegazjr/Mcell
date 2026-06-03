@@ -180,17 +180,15 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── SIDEBAR ────────────────────────────────── */
 .sidebar {
   width: 240px;
-  height: 100vh;
-  height: -webkit-fill-available;
   background: var(--bg2);
   border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
   position: fixed;
   left: 0; top: 0; bottom: 0;
   z-index: 200;
   transition: transform var(--transition);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .sidebar-header {
   padding: 24px 20px 16px;
@@ -211,17 +209,18 @@ textarea { resize: vertical; min-height: 80px; }
   padding: 4px;
 }
 .sidebar-nav {
-  flex: 1;
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
-  /* Safari fix: impede o nav de empurrar o user pra fora */
-  max-height: calc(100vh - 130px);
-  max-height: calc(-webkit-fill-available - 130px);
+  /* Deixa espaço fixo para o bloco do usuário (70px) + header (73px) */
+  position: absolute;
+  top: 73px;
+  left: 0;
+  right: 0;
+  bottom: 70px;
 }
 .nav-item {
   display: flex;
@@ -260,12 +259,14 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
   background: var(--bg2);
-  /* Safari: sticky dentro de flex não funciona, usar margin-top auto */
-  margin-top: auto;
-  position: relative;
-  z-index: 1;
+  /* Sempre fixo no fundo — funciona em todos os browsers */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  z-index: 2;
 }
 .user-avatar {
   width: 36px; height: 36px;
