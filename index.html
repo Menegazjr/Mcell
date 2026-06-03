@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Mcell — Gestão de Vendas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-bg">
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">◆</span>
+      <span class="logo-text">Mcell</span>
+    </div>
+    <p class="login-tagline">Sistema de Gestão de Vendas</p>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <div id="login-error" class="login-error hidden"></div>
+    <button class="btn-primary btn-full" id="btn-login">Entrar</button>
+    <p class="login-footer">Mcell © 2026 — Acesso restrito</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SETUP SCREEN (primeiro acesso)
+════════════════════════════════════════════════════ -->
+<div id="setup-screen" class="login-screen hidden">
+  <div class="login-bg">
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+  </div>
+  <div class="login-card setup-card">
+    <div class="login-logo">
+      <span class="logo-icon">◆</span>
+      <span class="logo-text">Mcell</span>
+    </div>
+    <div class="setup-badge">✦ Primeiro Acesso</div>
+    <p class="login-tagline" style="margin-bottom:24px">Nenhum administrador encontrado.<br>Crie a conta inicial do sistema.</p>
+
+    <div class="setup-steps">
+      <div class="setup-step active" id="step-1">
+        <div class="step-num">1</div><div class="step-label">Conta</div>
+      </div>
+      <div class="setup-step-line"></div>
+      <div class="setup-step" id="step-2">
+        <div class="step-num">2</div><div class="step-label">Perfil</div>
+      </div>
+      <div class="setup-step-line"></div>
+      <div class="setup-step" id="step-3">
+        <div class="step-num">3</div><div class="step-label">Pronto</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: email + senha -->
+    <div id="setup-step-1">
+      <div class="form-group">
+        <label>E-mail do Administrador *</label>
+        <input type="email" id="setup-email" placeholder="admin@mcell.com"/>
+      </div>
+      <div class="form-group">
+        <label>Senha *</label>
+        <input type="password" id="setup-password" placeholder="Mínimo 6 caracteres"/>
+      </div>
+      <div class="form-group">
+        <label>Confirmar Senha *</label>
+        <input type="password" id="setup-password2" placeholder="Repita a senha"/>
+      </div>
+      <div id="setup-error-1" class="login-error hidden"></div>
+      <button class="btn-primary btn-full" id="btn-setup-1">Continuar →</button>
+    </div>
+
+    <!-- STEP 2: nome -->
+    <div id="setup-step-2" class="hidden">
+      <div class="form-group">
+        <label>Seu Nome *</label>
+        <input type="text" id="setup-nome" placeholder="Nome completo"/>
+      </div>
+      <div class="form-group">
+        <label>Nome da Loja</label>
+        <input type="text" id="setup-loja" placeholder="Mcell" value="Mcell"/>
+      </div>
+      <div id="setup-error-2" class="login-error hidden"></div>
+      <button class="btn-primary btn-full" id="btn-setup-2">Criar Administrador →</button>
+    </div>
+
+    <!-- STEP 3: sucesso -->
+    <div id="setup-step-3" class="hidden" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:16px">✅</div>
+      <div style="font-family:var(--font-head);font-size:1.2rem;font-weight:800;margin-bottom:8px">
+        Sistema configurado!
+      </div>
+      <p style="color:var(--text2);font-size:0.87rem;margin-bottom:24px">
+        Conta de administrador criada com sucesso.<br>
+        Faça login para começar.
+      </p>
+      <button class="btn-primary btn-full" id="btn-setup-done">Fazer Login →</button>
+    </div>
+
+    <p class="login-footer">Mcell © 2026 — Configuração inicial</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════════ -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <span class="logo-icon">◆</span>
+        <span class="logo-text">Mcell</span>
+      </div>
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">⬡</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" data-page="vendas">
+        <span class="nav-icon">◈</span> Registrar Venda
+      </a>
+      <a href="#" class="nav-item" data-page="vendedoras" id="nav-vendedoras">
+        <span class="nav-icon">◉</span> Vendedoras
+      </a>
+      <a href="#" class="nav-item" data-page="metas" id="nav-metas">
+        <span class="nav-icon">◎</span> Metas
+      </a>
+      <a href="#" class="nav-item" data-page="desempenho" id="nav-desempenho">
+        <span class="nav-icon">◐</span> Meu Desempenho
+      </a>
+      <a href="#" class="nav-item" data-page="relatorios">
+        <span class="nav-icon">◫</span> Relatórios
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role">Administrador</div>
+      </div>
+      <button class="btn-logout" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="menu-toggle" id="menu-toggle">☰</button>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-month">
+        <select id="month-select" class="month-selector"></select>
+      </div>
+    </header>
+
+    <!-- PAGES -->
+    <div class="page active" id="page-dashboard"></div>
+    <div class="page" id="page-vendas"></div>
+    <div class="page" id="page-vendedoras"></div>
+    <div class="page" id="page-metas"></div>
+    <div class="page" id="page-desempenho"></div>
+    <div class="page" id="page-relatorios"></div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL
+════════════════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal-box" id="modal-box">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="dashboard.js"></script>
+<script src="vendas.js"></script>
+<script src="vendedoras.js"></script>
+<script src="metas.js"></script>
+<script src="desempenho.js"></script>
+<script src="relatorios.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
