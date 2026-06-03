@@ -215,12 +215,7 @@ textarea { resize: vertical; min-height: 80px; }
   gap: 4px;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Deixa espaço fixo para o bloco do usuário (70px) + header (73px) */
-  position: absolute;
-  top: 73px;
-  left: 0;
-  right: 0;
-  bottom: 70px;
+  flex: 1;
 }
 .nav-item {
   display: flex;
@@ -254,19 +249,13 @@ textarea { resize: vertical; min-height: 80px; }
 .nav-icon { font-size: 1rem; opacity: 0.9; }
 
 .sidebar-user {
-  padding: 16px;
-  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 10px;
   background: var(--bg2);
-  /* Sempre fixo no fundo — funciona em todos os browsers */
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
-  z-index: 2;
+  flex-shrink: 0;
 }
 .user-avatar {
   width: 36px; height: 36px;

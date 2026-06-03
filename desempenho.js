@@ -35,7 +35,7 @@ async function renderDesempenho() {
     const numAtivas  = ativas.length || 1;
     const metaFat    = meta?.meta_faturamento || 0;
     const metaApar   = meta?.meta_aparelhos   || 0;
-    const metaIndFat = metaFat  / numAtivas;
+    
     const metaIndApar= metaApar / numAtivas;
 
     // Totais
@@ -153,7 +153,7 @@ async function renderDesempenho() {
             },
             {
               label: 'Meta',
-              data: dias.map(() => metaIndFat),
+              data: dias.map(() => metaIndApar),
               borderColor: '#22c55e50',
               borderDash: [6, 4],
               borderWidth: 2,
@@ -258,9 +258,9 @@ async function renderDesempenhoPara(vendedoraId) {
       </div>
 
       <div class="cards-grid" style="margin-bottom:24px">
-        ${cardDesemp('Faturado', fmt(totalFat), fmt(metaIndFat), p1, 'blue')}
+        ${cardDesemp('Faturado', fmt(totalFat), totalApar + ' vendas no mês', null, 'blue')}
         ${cardDesemp('Aparelhos', fmtNum(totalApar), fmtNum(Math.ceil(metaIndApar)), p2, 'green')}
-        ${cardDesemp('Faltam (R$)', faltaFat>0?fmt(faltaFat):'✓ Bateu!', 'Para a meta', null, faltaFat>0?'yellow':'green')}
+        ${cardDesemp('Faltam', faltaApar>0?faltaApar+' un.':'✓ Bateu!', 'Para a meta', null, faltaApar>0?'yellow':'green')}
         ${cardDesemp('Faltam (Ap.)', faltaApar>0?faltaApar+' un.':'✓ Bateu!', 'Para a meta', null, faltaApar>0?'yellow':'green')}
         ${cardDesemp('Ticket Médio', fmt(ticketMed), totalApar+' vendas', null, 'blue')}
       </div>
@@ -268,7 +268,7 @@ async function renderDesempenhoPara(vendedoraId) {
       <div class="panel" style="margin-bottom:24px">
         <div class="panel-title" style="margin-bottom:20px">📊 Progresso das Metas</div>
         <div class="meta-track-row">
-          <div class="meta-track-label"><span>💰 Faturamento</span><span>${fmt(totalFat)} de ${fmt(metaIndFat)}</span></div>
+          <div class="meta-track-label"><span>📱 Aparelhos vendidos</span><span>${totalApar} de ${Math.ceil(metaIndApar)} un.</span></div>
           <div class="meta-track-bg"><div class="meta-track-fill" style="width:${p1}%;background:${progressColor(p1)}"><span class="meta-track-pct">${p1}%</span></div></div>
         </div>
         <div class="meta-track-row">
@@ -302,7 +302,7 @@ async function renderDesempenhoPara(vendedoraId) {
           labels: dias.map(d => fmtDate(d)),
           datasets: [
             { label: 'Acumulado', data: vals, borderColor: '#3d7eff', backgroundColor: '#3d7eff18', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#3d7eff' },
-            { label: 'Meta', data: dias.map(() => metaIndFat), borderColor: '#22c55e50', borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false }
+            { label: 'Meta', data: dias.map(() => metaIndApar), borderColor: '#22c55e50', borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false }
           ]
         },
         options: {
@@ -372,7 +372,7 @@ function renderMotivacao(p1, faltaApar) {
     msg = `Você está em ${p1}% da meta. Foco nas vendas — ainda dá tempo!`;
   } else {
     icon = '💪'; titulo = 'Todo dia conta!';
-    msg = `Cada venda te aproxima da meta. Faltam ${fmt(faltaFat)} — vamos lá!`;
+    msg = `Cada venda te aproxima da meta. Faltam ${faltaApar} aparelhos — vamos lá!`;
   }
   return `
     <div class="desemp-motivacao">
