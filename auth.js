@@ -61,6 +61,12 @@ function showLogin() {
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('setup-screen').classList.add('hidden');
   document.getElementById('app').classList.add('hidden');
+  // Restaurar e-mail salvo
+  const saved = localStorage.getItem('mcell_email');
+  if (saved) {
+    document.getElementById('login-email').value = saved;
+    document.getElementById('login-remember').checked = true;
+  }
 }
 
 function showSetup() {
@@ -208,6 +214,14 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
   btn.textContent = 'Entrando…';
   btn.disabled = true;
+
+  // Lembrar e-mail
+  const remember = document.getElementById('login-remember')?.checked;
+  if (remember) {
+    localStorage.setItem('mcell_email', email);
+  } else {
+    localStorage.removeItem('mcell_email');
+  }
 
   const { error } = await _supabase.auth.signInWithPassword({ email, password: pass });
 

@@ -39,6 +39,10 @@ function buildMonthSelector() {
     const [m, a] = sel.value.split('-').map(Number);
     currentMes = m;
     currentAno = a;
+    // Resetar vendedora selecionada no desempenho ao trocar mês
+    if (typeof _selectedVendedoraDesemp !== 'undefined') {
+      _selectedVendedoraDesemp = null;
+    }
     refreshCurrentPage();
   });
 }

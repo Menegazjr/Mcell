@@ -25,8 +25,13 @@ async function renderDesempenho() {
     // Admin pode escolher qual vendedora visualizar
     const todasVendedoras = isAdmin() ? await db.getVendedoras(true) : [];
 
+    // Admin: usa a primeira vendedora da lista automaticamente no carregamento
+    const vendedoraIdFinal = isAdmin()
+      ? (_selectedVendedoraDesemp || (todasVendedoras[0]?.id || null))
+      : vendedoraId;
+
     const [vendas, meta, vendedoras] = await Promise.all([
-      db.getVendas({ mes: currentMes, ano: currentAno, vendedora_id: vendedoraId || undefined }),
+      db.getVendas({ mes: currentMes, ano: currentAno, vendedora_id: vendedoraIdFinal || undefined }),
       db.getMeta(currentMes, currentAno),
       isAdmin() ? Promise.resolve(todasVendedoras) : db.getVendedoras(true)
     ]);
@@ -58,17 +63,17 @@ async function renderDesempenho() {
 
     // Nome da vendedora
     let nomeVend = currentProfile?.nome || 'Você';
-    if (isAdmin() && vendedoraId) {
-      const v = ativas.find(x => x.id === vendedoraId);
+    if (isAdmin()) {
+      const v = ativas.find(x => x.id === vendedoraIdFinal);
       if (v) nomeVend = v.nome;
     }
 
-    // Seletor de vendedora (só admin)
+    // Seletor de vendedora (só admin) — pré-seleciona a vendedora atual
     const seletorAdmin = isAdmin() ? `
       <div class="desemp-selector">
         <label>Ver desempenho de:</label>
         <select id="sel-vend-desemp">
-          ${ativas.map(v => `<option value="${v.id}">${v.nome}</option>`).join('')}
+          ${ativas.map(v => `<option value="${v.id}" ${v.id === vendedoraIdFinal ? 'selected' : ''}>${v.nome}</option>`).join('')}
         </select>
       </div>` : '';
 
@@ -133,16 +138,16 @@ async function renderDesempenho() {
     if (chartDesempenho) { chartDesempenho.destroy(); chartDesempenho = null; }
     const ctxD = document.getElementById('chart-desemp')?.getContext('2d');
     if (ctxD && dias.length) {
-      // Acumulado diário
+      // Acumulado de aparelhos por dia
       let acum = 0;
-      const vals = dias.map(d => { acum += byDay[d].fat; return acum; });
+      const vals = dias.map(d => { acum += byDay[d].apar; return acum; });
       chartDesempenho = new Chart(ctxD, {
         type: 'line',
         data: {
           labels: dias.map(d => fmtDate(d)),
           datasets: [
             {
-              label: 'Acumulado',
+              label: 'Aparelhos',
               data: vals,
               borderColor: '#3d7eff',
               backgroundColor: '#3d7eff18',
@@ -173,12 +178,12 @@ async function renderDesempenho() {
               backgroundColor: '#18181f',
               borderColor: '#ffffff20',
               borderWidth: 1,
-              callbacks: { label: ctx => ' ' + fmt(ctx.raw) }
+              callbacks: { label: ctx => ' ' + ctx.raw + ' un.' }
             }
           },
           scales: {
             x: { ticks: { color: '#55556a', font: { size: 10 } }, grid: { color: '#ffffff08' } },
-            y: { ticks: { color: '#55556a', font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0)+'k' }, grid: { color: '#ffffff08' } }
+            y: { ticks: { color: '#55556a', font: { size: 10 } }, grid: { color: '#ffffff08' } }
           }
         }
       });
@@ -201,7 +206,7 @@ async function renderDesempenho() {
 }
 
 // Admin pode ver qualquer vendedora
-let _selectedVendedoraDesemp = null;
+let _selectedVendedoraDesemp = null; // resetado ao trocar de mês via app.js
 async function renderDesempenhoPara(vendedoraId) {
   const page = document.getElementById('page-desempenho');
   // Preserve selector
@@ -295,13 +300,13 @@ async function renderDesempenhoPara(vendedoraId) {
     const ctxD = document.getElementById('chart-desemp')?.getContext('2d');
     if (ctxD && dias.length) {
       let acum = 0;
-      const vals = dias.map(d => { acum += byDay[d].fat; return acum; });
+      const vals = dias.map(d => { acum += byDay[d].apar; return acum; });
       chartDesempenho = new Chart(ctxD, {
         type: 'line',
         data: {
           labels: dias.map(d => fmtDate(d)),
           datasets: [
-            { label: 'Acumulado', data: vals, borderColor: '#3d7eff', backgroundColor: '#3d7eff18', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#3d7eff' },
+            { label: 'Aparelhos', data: vals, borderColor: '#3d7eff', backgroundColor: '#3d7eff18', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#3d7eff' },
             { label: 'Meta', data: dias.map(() => metaIndApar), borderColor: '#22c55e50', borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false }
           ]
         },
@@ -309,11 +314,11 @@ async function renderDesempenhoPara(vendedoraId) {
           responsive: true,
           plugins: {
             legend: { display: true, labels: { color: '#8888a0', font: { size: 11 }, boxWidth: 12 } },
-            tooltip: { backgroundColor: '#18181f', borderColor: '#ffffff20', borderWidth: 1, callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+            tooltip: { backgroundColor: '#18181f', borderColor: '#ffffff20', borderWidth: 1, callbacks: { label: ctx => ' ' + ctx.raw + ' un.' } }
           },
           scales: {
             x: { ticks: { color: '#55556a', font: { size: 10 } }, grid: { color: '#ffffff08' } },
-            y: { ticks: { color: '#55556a', font: { size: 10 }, callback: v => 'R$'+(v/1000).toFixed(0)+'k' }, grid: { color: '#ffffff08' } }
+            y: { ticks: { color: '#55556a', font: { size: 10 } }, grid: { color: '#ffffff08' } }
           }
         }
       });

@@ -1259,3 +1259,25 @@ tbody tr:hover td { background: var(--border); }
 }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* ═══════════════════════════════════════════════
+   LEMBRAR E-MAIL
+════════════════════════════════════════════════ */
+.remember-row {
+  margin-bottom: 12px;
+}
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: var(--text2);
+  cursor: pointer;
+}
+.remember-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
