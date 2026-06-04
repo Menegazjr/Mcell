@@ -1299,7 +1299,7 @@ tbody tr:hover td { background: var(--border); }
    LOGO IMAGEM
 ════════════════════════════════════════════════ */
 .logo-img-sidebar {
-  height: 36px;
+  height: 52px;
   width: auto;
   object-fit: contain;
 }
