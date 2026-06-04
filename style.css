@@ -12,9 +12,9 @@
   --text:      #f0f0f5;
   --text2:     #8888a0;
   --text3:     #55556a;
-  --blue:      #3d7eff;
-  --blue2:     #2563d8;
-  --blue-glow: #3d7eff33;
+  --blue:      #FC4C04;
+  --blue2:     #d93e00;
+  --blue-glow: #FC4C0433;
   --green:     #22c55e;
   --yellow:    #f59e0b;
   --red:       #ef4444;
@@ -77,8 +77,8 @@ textarea { resize: vertical; min-height: 80px; }
 .login-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 20% 30%, #1a2a4a 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 70%, #0d1a33 0%, transparent 60%);
+  background: radial-gradient(ellipse at 20% 30%, #3a1a0a 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 70%, #2a0d00 0%, transparent 60%);
 }
 .login-orb {
   position: absolute;
@@ -94,7 +94,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .login-orb-2 {
   width: 400px; height: 400px;
-  background: #1a3a7a;
+  background: #3a1500;
   bottom: -100px; right: -100px;
   animation: float 10s ease-in-out infinite reverse;
 }
@@ -134,7 +134,7 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #fff 0%, #3d7eff 100%);
+  background: linear-gradient(135deg, #fff 0%, #FC4C04 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -1074,7 +1074,7 @@ tbody tr:hover td { background: var(--border); }
 }
 .desemp-avatar {
   width: 52px; height: 52px;
-  background: linear-gradient(135deg, var(--blue), #1a3a7a);
+  background: linear-gradient(135deg, var(--blue), #3a1500);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-head);
@@ -1293,4 +1293,19 @@ tbody tr:hover td { background: var(--border); }
   flex-shrink: 0;
   -webkit-appearance: checkbox !important;
   appearance: checkbox !important;
+}
+
+/* ═══════════════════════════════════════════════
+   LOGO IMAGEM
+════════════════════════════════════════════════ */
+.logo-img-sidebar {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+.logo-img-login {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 8px;
 }
