@@ -94,11 +94,9 @@ async function renderDesempenho() {
 
       <!-- CARDS PRINCIPAIS -->
       <div class="cards-grid" style="margin-bottom:24px">
-        ${cardDesemp('Faturado', fmt(totalFat), totalApar + ' vendas no mês', null, 'blue')}
         ${cardDesemp('Aparelhos Vendidos', fmtNum(totalApar), `Meta: ${Math.ceil(metaIndApar)} un.`, p1, 'green')}
         ${cardDesemp('Meta Individual', Math.ceil(metaIndApar) + ' un.', `${p1}% atingido`, null, 'blue')}
         ${cardDesemp('Faltam', faltaApar > 0 ? faltaApar + ' un.' : '✓ Bateu!', 'Para a meta de aparelhos', null, faltaApar > 0 ? 'yellow' : 'green')}
-        ${cardDesemp('Ticket Médio', fmt(ticketMed), totalApar + ' vendas', null, 'blue')}
       </div>
 
       <!-- BARRAS DE META -->

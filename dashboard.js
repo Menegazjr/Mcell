@@ -88,7 +88,6 @@ async function renderDashboard() {
           ${card('Aparelhos Vendidos', fmtNum(meuApar),  `Meta: ${Math.ceil(metaIndApar)} un.`,    'green',  meuPct)}
           ${card('Meta Individual',    `${meuPct}%`,     `Faltam ${faltam} un.`,                   'yellow', meuPct)}
           ${card('Faltam',             faltam + ' un.',  'Para bater a meta',                      faltam===0?'green':'yellow', null)}
-          ${card('Faturado',           fmt(meuFat),      `${meuApar} aparelhos este mês`,          'blue',   null)}
         </div>
       `;
     }

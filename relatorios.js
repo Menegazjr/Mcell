@@ -127,16 +127,13 @@ async function gerarRelatorio() {
       ? `${mesToNomeCompleto(filtro.mes)}/${filtro.ano}`
       : `${fmtDate(filtro.data_inicio)} a ${fmtDate(filtro.data_fim)}`;
 
-    div.innerHTML = `
-      <!-- KPIs -->
+    const adminBlocks = isAdmin() ? `
       <div class="cards-grid" style="margin-bottom:24px">
         ${cardR('Faturamento Total', fmt(totalFat))}
         ${cardR('Aparelhos Vendidos', fmtNum(totalApar))}
         ${cardR('Ticket Médio', fmt(ticketMed))}
         ${cardR('Registros', vendas.length)}
       </div>
-
-      <!-- RANKING -->
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title">🏆 Ranking — ${periodo}</div>
@@ -154,7 +151,18 @@ async function gerarRelatorio() {
             </div>
             <div class="rank-value">${fmt(d.fat)}</div>
           </div>`).join('') || `<div class="empty-state"><p>Sem dados no período.</p></div>`}
+      </div>` : `
+      <div class="cards-grid" style="margin-bottom:24px">
+        ${cardR('Aparelhos Vendidos', fmtNum(totalApar))}
+        ${cardR('Registros', vendas.length)}
       </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+        <button class="btn-ghost btn-sm" id="btn-pdf">⬇ PDF</button>
+        <button class="btn-ghost btn-sm" id="btn-excel">⬇ Excel</button>
+      </div>`;
+
+    div.innerHTML = `
+      ${adminBlocks}
 
       <!-- TABELA DETALHADA -->
       <div class="panel">
