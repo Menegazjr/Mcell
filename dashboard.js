@@ -48,35 +48,50 @@ async function renderDashboard() {
 
     const vendedoraSection = isAdmin() ? renderVendedoraCards(ativas, byVend, metaIndApar) : '';
 
-    page.innerHTML = `
-      <div class="cards-grid">
-        ${card('Total Faturado',     fmt(totalFat),       `${totalApar} aparelhos vendidos`, 'blue',   null)}
-        ${card('Aparelhos Vendidos', fmtNum(totalApar),   `Meta: ${fmtNum(metaApar)} un.`,   'green',  pctApar)}
-        ${card('Meta Aparelhos',     `${pctApar}%`,       `Faltam ${Math.max(0, metaApar - totalApar)} un.`, 'yellow', pctApar)}
-        ${card('Ticket Médio',       fmt(ticketMedio),    `${totalApar} vendas no mês`,      'blue',   null)}
-        ${card('Vendedoras Ativas',  numAtivas,           `Meta ind.: ${metaIndApar.toFixed(1)} un.`, 'green', null)}
-      </div>
-
-      <div class="charts-grid">
-        <div class="chart-panel">
-          <div class="section-title">Faturamento por Vendedora</div>
-          <canvas id="chart-vendedoras"></canvas>
+    if (isAdmin()) {
+      page.innerHTML = `
+        <div class="cards-grid">
+          ${card('Total Faturado',     fmt(totalFat),       `${totalApar} aparelhos vendidos`, 'blue',   null)}
+          ${card('Aparelhos Vendidos', fmtNum(totalApar),   `Meta: ${fmtNum(metaApar)} un.`,   'green',  pctApar)}
+          ${card('Meta Aparelhos',     `${pctApar}%`,       `Faltam ${Math.max(0, metaApar - totalApar)} un.`, 'yellow', pctApar)}
+          ${card('Ticket Médio',       fmt(ticketMedio),    `${totalApar} vendas no mês`,      'blue',   null)}
+          ${card('Usuários Ativos',    numAtivas,           `Meta ind.: ${metaIndApar.toFixed(1)} un.`, 'green', null)}
         </div>
-        <div class="chart-panel">
-          <div class="section-title">Evolução Diária <span>${mesToNomeCompleto(currentMes)}</span></div>
-          <canvas id="chart-diario"></canvas>
+        <div class="charts-grid">
+          <div class="chart-panel">
+            <div class="section-title">Faturamento por Usuário</div>
+            <canvas id="chart-vendedoras"></canvas>
+          </div>
+          <div class="chart-panel">
+            <div class="section-title">Evolução Diária <span>${mesToNomeCompleto(currentMes)}</span></div>
+            <canvas id="chart-diario"></canvas>
+          </div>
         </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">🏆 Ranking — ${mesToNomeCompleto(currentMes)}/${currentAno}</div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏆 Ranking — ${mesToNomeCompleto(currentMes)}/${currentAno}</div>
+          </div>
+          ${renderRanking(byVend)}
         </div>
-        ${renderRanking(byVend)}
-      </div>
-
-      ${vendedoraSection}
-    `;
+        ${vendedoraSection}
+      `;
+    } else {
+      // Vendedora: só aparelhos, sem faturamento, sem ranking
+      const meuId = getVendedoraId();
+      const minhasVendas = vendas.filter(v => v.vendedora_id === meuId);
+      const meuApar = minhasVendas.reduce((s,v) => s + (v.quantidade||1), 0);
+      const meuFat  = minhasVendas.reduce((s,v) => s + parseFloat(v.valor||0)*(v.quantidade||1), 0);
+      const meuPct  = pct(meuApar, metaIndApar);
+      const faltam  = Math.max(0, Math.ceil(metaIndApar - meuApar));
+      page.innerHTML = `
+        <div class="cards-grid">
+          ${card('Aparelhos Vendidos', fmtNum(meuApar),  `Meta: ${Math.ceil(metaIndApar)} un.`,    'green',  meuPct)}
+          ${card('Meta Individual',    `${meuPct}%`,     `Faltam ${faltam} un.`,                   'yellow', meuPct)}
+          ${card('Faltam',             faltam + ' un.',  'Para bater a meta',                      faltam===0?'green':'yellow', null)}
+          ${card('Faturado',           fmt(meuFat),      `${meuApar} aparelhos este mês`,          'blue',   null)}
+        </div>
+      `;
+    }
 
     // Charts
     if (chartVendedoras) { chartVendedoras.destroy(); chartVendedoras = null; }
@@ -153,9 +168,9 @@ function renderRanking(byVend) {
       <div class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
       <div class="rank-info">
         <div class="rank-name">${nome}</div>
-        <div class="rank-sub">${fmt(d.fat)} faturado</div>
+        <div class="rank-sub">${fmtNum(d.apar)} aparelhos vendidos</div>
       </div>
-      <div class="rank-value">${fmtNum(d.apar)} un.<small>Ticket: ${fmt(d.apar?d.fat/d.apar:0)}</small></div>
+      <div class="rank-value">${fmtNum(d.apar)} un.</div>
     </div>`).join('');
 }
 
@@ -172,10 +187,6 @@ function renderVendedoraCards(ativas, byVend, metaIndApar) {
           <span class="badge badge-${p>=100?'green':'blue'}">${p}%</span>
         </div>
         <div class="vendor-stats">
-          <div class="vstat">
-            <div class="vstat-label">Faturado</div>
-            <div class="vstat-val">${fmt(d.fat)}</div>
-          </div>
           <div class="vstat">
             <div class="vstat-label">Aparelhos</div>
             <div class="vstat-val">${fmtNum(d.apar)}</div>
