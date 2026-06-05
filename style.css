@@ -117,8 +117,8 @@ textarea { resize: vertical; min-height: 80px; }
 .login-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 .logo-icon {
   color: var(--blue);
@@ -191,7 +191,7 @@ textarea { resize: vertical; min-height: 80px; }
   flex-direction: column;
 }
 .sidebar-header {
-  padding: 24px 20px 16px;
+  padding: 16px 16px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -200,7 +200,8 @@ textarea { resize: vertical; min-height: 80px; }
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  flex: 1;
 }
 .sidebar-close {
   display: none;
@@ -1299,13 +1300,18 @@ tbody tr:hover td { background: var(--border); }
    LOGO IMAGEM
 ════════════════════════════════════════════════ */
 .logo-img-sidebar {
-  height: 52px;
-  width: auto;
+  height: 72px;
+  width: 100%;
+  max-width: 160px;
   object-fit: contain;
+  display: block;
+  margin: 0 auto;
 }
 .logo-img-login {
-  height: 80px;
+  height: 120px;
   width: auto;
+  max-width: 260px;
   object-fit: contain;
-  margin-bottom: 8px;
+  display: block;
+  margin: 0 auto 12px;
 }
