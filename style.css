@@ -1315,3 +1315,21 @@ tbody tr:hover td { background: var(--border); }
   display: block;
   margin: 0 auto 12px;
 }
+
+/* ═══════════════════════════════════════════════
+   BANNER OFFLINE
+════════════════════════════════════════════════ */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #f59e0b;
+  color: #1a1a1a;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px #00000040;
+}

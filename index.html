@@ -212,6 +212,11 @@
 <!-- TOAST -->
 <div id="toast" class="toast hidden"></div>
 
+<!-- Banner offline -->
+<div id="offline-banner" class="offline-banner hidden">
+  📡 Sem conexão — algumas funções estão indisponíveis
+</div>
+
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
 <script src="dashboard.js"></script>
@@ -222,5 +227,26 @@
 <script src="banco.js"></script>
 <script src="relatorios.js"></script>
 <script src="app.js"></script>
+<script>
+  // Registrar Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/Mcell/sw.js')
+        .then(r => console.log('SW registrado:', r.scope))
+        .catch(e => console.warn('SW falhou:', e));
+    });
+  }
+
+  // Banner offline
+  function updateOnlineStatus() {
+    const banner = document.getElementById('offline-banner');
+    if (banner) {
+      banner.classList.toggle('hidden', navigator.onLine);
+    }
+  }
+  window.addEventListener('online',  updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+</script>
 </body>
 </html>
