@@ -2,20 +2,20 @@
   "name": "Mcell — Gestão de Vendas",
   "short_name": "Mcell",
   "description": "Sistema de Gestão de Vendas Mcell",
-  "start_url": "/",
+  "start_url": "/Mcell/",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#FC4C04",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon-pwa.png",
+      "src": "/Mcell/icon-pwa.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-pwa.png",
+      "src": "/Mcell/icon-pwa.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
