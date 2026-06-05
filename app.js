@@ -24,15 +24,22 @@ function buildMonthSelector() {
   sel.innerHTML = '';
   const now = new Date();
 
-  for (let offset = -12; offset <= 3; offset++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const m = d.getMonth() + 1;
-    const a = d.getFullYear();
+  // Início fixo: Junho 2026
+  const inicio = new Date(2026, 5, 1);
+
+  // Fim: mês atual + 1 (cresce automaticamente todo mês)
+  const fim = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  let cursor = new Date(inicio);
+  while (cursor <= fim) {
+    const m = cursor.getMonth() + 1;
+    const a = cursor.getFullYear();
     const opt = document.createElement('option');
     opt.value = `${m}-${a}`;
     opt.textContent = `${mesToNome(m)} ${a}`;
     if (m === currentMes && a === currentAno) opt.selected = true;
     sel.appendChild(opt);
+    cursor.setMonth(cursor.getMonth() + 1);
   }
 
   sel.addEventListener('change', () => {
