@@ -15,10 +15,29 @@ async function renderVendedoras() {
   page.innerHTML = `<div class="spinner"></div>`;
 
   try {
-    const [vendedoras, users] = await Promise.all([
-      db.getVendedoras(),
-      db.listUsers()
-    ]);
+    // Busca vendedoras sempre; tenta list_users (Edge Function), fallback para profiles
+    let vendedoras, users;
+    try {
+      [vendedoras, users] = await Promise.all([
+        db.getVendedoras(),
+        db.listUsers()
+      ]);
+    } catch (e) {
+      // Fallback: usa profiles sem e-mail caso Edge Function falhe
+      const [v, profiles] = await Promise.all([
+        db.getVendedoras(),
+        db.getAllProfiles()
+      ]);
+      vendedoras = v;
+      users = profiles.map(p => ({
+        id:         p.id,
+        email:      '— (atualize a Edge Function)',
+        nome:       p.nome,
+        role:       p.role,
+        is_master:  p.is_master || false,
+        created_at: p.created_at
+      }));
+    }
 
     const admins    = users.filter(u => u.role === 'admin');
     const comAcesso = new Set(users.filter(u => u.vendedora_id).map(u => u.vendedora_id));
