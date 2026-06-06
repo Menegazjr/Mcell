@@ -36,18 +36,17 @@ async function renderPerfil() {
               <input type="text" id="p-nome" value="${nome}" placeholder="Seu nome"/>
             </div>
             <div class="form-group form-full">
-              <label>E-mail</label>
-              <input type="email" value="${email}" disabled
-                style="opacity:0.5;cursor:not-allowed" title="O e-mail não pode ser alterado aqui"/>
-              <small style="color:var(--text2);font-size:0.75rem;margin-top:4px;display:block">
-                O e-mail só pode ser alterado pelo administrador
-              </small>
+              <label>E-mail ${isAdmin() ? '' : '<span style="color:var(--text3);font-weight:400;font-size:0.8rem">— somente leitura</span>'}</label>
+              <input type="email" id="p-email" value="${email}"
+                ${isAdmin() ? '' : 'disabled style="opacity:0.5;cursor:not-allowed"'}
+                placeholder="seu@email.com"/>
+              ${!isAdmin() ? '<small style="color:var(--text2);font-size:0.75rem;margin-top:4px;display:block">Fale com o administrador para alterar o e-mail</small>' : ''}
             </div>
           </div>
           <div id="dados-success" class="perfil-msg success hidden">✓ Nome atualizado com sucesso!</div>
           <div id="dados-error" class="perfil-msg error hidden"></div>
           <div class="form-actions">
-            <button type="submit" class="btn-primary">Salvar Nome</button>
+            <button type="submit" class="btn-primary">${isAdmin() ? 'Salvar Dados' : 'Salvar Nome'}</button>
           </div>
         </form>
       </div>
@@ -98,11 +97,28 @@ async function renderPerfil() {
       btn.disabled = true;
 
       try {
+        // Atualizar nome no profile
         const { error } = await _supabase
           .from('profiles')
           .update({ nome })
           .eq('id', currentUser.id);
         if (error) throw error;
+
+        // Se admin, verificar se e-mail mudou
+        if (isAdmin()) {
+          const novoEmail = document.getElementById('p-email')?.value?.trim();
+          if (novoEmail && novoEmail !== currentUser.email) {
+            const { data, error: emailErr } = await _supabase.functions.invoke('create-user', {
+              body: { action: 'update_email', userId: currentUser.id, email: novoEmail }
+            });
+            if (emailErr || data?.error) throw new Error(data?.error || emailErr?.message || 'Erro ao alterar e-mail.');
+            toast('Nome e e-mail atualizados!');
+          } else {
+            toast('Nome atualizado!');
+          }
+        } else {
+          toast('Nome atualizado!');
+        }
 
         // Atualiza localmente
         if (currentProfile) currentProfile.nome = nome;
@@ -110,7 +126,6 @@ async function renderPerfil() {
         document.getElementById('user-avatar').textContent = nome.charAt(0).toUpperCase();
 
         ok.classList.remove('hidden');
-        toast('Nome atualizado!');
         renderPerfil();
       } catch (err2) {
         err.textContent = 'Erro: ' + err2.message;
