@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════
 // MCELL — SERVICE WORKER
-// Cache de arquivos estáticos para abertura offline
+// Atualiza automaticamente quando há nova versão
 // ═══════════════════════════════════════════════
 
-const CACHE_NAME = 'mcell-v1';
+// Mude esse número a cada deploy para forçar atualização
+const CACHE_VERSION = 'mcell-v2';
 
 const STATIC_FILES = [
   '/Mcell/',
@@ -21,24 +22,19 @@ const STATIC_FILES = [
   '/Mcell/banco.js',
   '/Mcell/logomcell.png',
   '/Mcell/icon-pwa.png',
-  // Libs externas
-  'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
 ];
 
-// ── INSTALL — faz cache de tudo ────────────────
+// ── INSTALL ────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return Promise.allSettled(
+    caches.open(CACHE_VERSION).then(cache =>
+      Promise.allSettled(
         STATIC_FILES.map(url =>
           cache.add(url).catch(() => console.warn('Cache falhou:', url))
         )
-      );
-    }).then(() => self.skipWaiting())
+      )
+    // Força ativação imediata sem esperar fechar abas
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -47,17 +43,20 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE_VERSION).map(k => {
+          console.log('Removendo cache antigo:', k);
+          return caches.delete(k);
+        })
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// ── FETCH — serve cache, tenta rede ───────────
+// ── FETCH ──────────────────────────────────────
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Requisições ao Supabase sempre vão para a rede
+  // Supabase sempre vai para a rede
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -70,23 +69,61 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Arquivos estáticos: cache first, rede como fallback
+  // HTML: network first — sempre tenta buscar versão mais nova
+  // Se falhar (offline), usa o cache
+  if (event.request.destination === 'document' ||
+      event.request.url.includes('index.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache =>
+            cache.put(event.request, clone)
+          );
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // JS e CSS: network first também, para pegar atualizações
+  if (event.request.destination === 'script' ||
+      event.request.destination === 'style') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache =>
+            cache.put(event.request, clone)
+          );
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Imagens e resto: cache first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request).then(response => {
-        // Salva no cache se for resposta válida
-        if (response && response.status === 200 && response.type !== 'opaque') {
+        if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_VERSION).then(cache =>
+            cache.put(event.request, clone)
+          );
         }
         return response;
-      }).catch(() => {
-        // Offline e não tem cache: retorna o index.html
-        if (event.request.destination === 'document') {
-          return caches.match('/Mcell/index.html');
-        }
-      });
+      }).catch(() => caches.match('/Mcell/index.html'));
     })
   );
+});
+
+// ── MENSAGEM — força reload quando há update ──
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });

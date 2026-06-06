@@ -228,21 +228,42 @@
 <script src="relatorios.js"></script>
 <script src="app.js"></script>
 <script>
-  // Registrar Service Worker
+  // Registrar Service Worker com auto-update
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/Mcell/sw.js')
-        .then(r => console.log('SW registrado:', r.scope))
-        .catch(e => console.warn('SW falhou:', e));
+      navigator.serviceWorker.register('/Mcell/sw.js').then(reg => {
+        console.log('SW registrado:', reg.scope);
+
+        // Verifica atualização a cada 60 segundos
+        setInterval(() => reg.update(), 60000);
+
+        // Quando novo SW estiver esperando, ativa imediatamente
+        reg.addEventListener('updatefound', () => {
+          const novo = reg.installing;
+          novo.addEventListener('statechange', () => {
+            if (novo.state === 'installed' && navigator.serviceWorker.controller) {
+              // Há nova versão — recarrega automaticamente
+              novo.postMessage('skipWaiting');
+            }
+          });
+        });
+      }).catch(e => console.warn('SW falhou:', e));
+
+      // Quando SW assumir controle, recarrega a página
+      let recarregando = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!recarregando) {
+          recarregando = true;
+          window.location.reload();
+        }
+      });
     });
   }
 
   // Banner offline
   function updateOnlineStatus() {
     const banner = document.getElementById('offline-banner');
-    if (banner) {
-      banner.classList.toggle('hidden', navigator.onLine);
-    }
+    if (banner) banner.classList.toggle('hidden', navigator.onLine);
   }
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
