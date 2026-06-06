@@ -91,7 +91,8 @@ function navigateTo(page) {
     metas:       'Metas',
     relatorios:  'Relatórios',
     desempenho:  'Meu Desempenho',
-    banco:       'Uso do Banco'
+    banco:       'Uso do Banco',
+    perfil:      'Meu Perfil'
   };
   document.getElementById('topbar-title').textContent = titles[page] || page;
 
@@ -107,6 +108,7 @@ function refreshCurrentPage() {
     case 'relatorios': renderRelatorios(); break;
     case 'desempenho': renderDesempenho(); break;
     case 'banco':      renderBanco();      break;
+    case 'perfil':     renderPerfil();     break;
   }
 }
 

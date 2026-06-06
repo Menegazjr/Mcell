@@ -1333,3 +1333,64 @@ tbody tr:hover td { background: var(--border); }
   padding: 10px 16px;
   box-shadow: 0 2px 8px #00000040;
 }
+
+/* ═══════════════════════════════════════════════
+   MEU PERFIL
+════════════════════════════════════════════════ */
+.perfil-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.perfil-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), #3a1500);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 1.6rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 0 24px var(--blue-glow);
+}
+.perfil-nome {
+  font-family: var(--font-head);
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.perfil-email {
+  font-size: 0.83rem;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+.perfil-msg {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+.perfil-msg.success {
+  background: #22c55e18;
+  border: 1px solid #22c55e40;
+  color: #4ade80;
+}
+.perfil-msg.error {
+  background: #ef444418;
+  border: 1px solid #ef444440;
+  color: #fca5a5;
+}
+.perfil-dica {
+  font-size: 0.8rem;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}

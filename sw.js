@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════
 
 // Mude esse número a cada deploy para forçar atualização
-const CACHE_VERSION = 'mcell-v2';
+const CACHE_VERSION = 'mcell-v3';
 
 const STATIC_FILES = [
   '/Mcell/',
@@ -20,6 +20,7 @@ const STATIC_FILES = [
   '/Mcell/relatorios.js',
   '/Mcell/desempenho.js',
   '/Mcell/banco.js',
+  '/Mcell/perfil.js',
   '/Mcell/logomcell.png',
   '/Mcell/icon-pwa.png',
 ];
