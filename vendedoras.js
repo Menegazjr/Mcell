@@ -15,13 +15,14 @@ async function renderVendedoras() {
   page.innerHTML = `<div class="spinner"></div>`;
 
   try {
-    const [vendedoras, profiles] = await Promise.all([
+    const [vendedoras, users] = await Promise.all([
       db.getVendedoras(),
-      db.getAllProfiles()
+      db.listUsers()
     ]);
 
-    const admins    = profiles.filter(p => p.role === 'admin');
-    const comAcesso = new Set(profiles.filter(p => p.vendedora_id).map(p => p.vendedora_id));
+    const admins    = users.filter(u => u.role === 'admin');
+    const comAcesso = new Set(users.filter(u => u.vendedora_id).map(u => u.vendedora_id));
+    const isMaster  = users.find(u => u.id === currentUser?.id)?.is_master || false;
 
     page.innerHTML = `
       <!-- ABAS -->
@@ -55,7 +56,7 @@ async function renderVendedoras() {
             <button class="btn-primary btn-sm" id="btn-novo-admin">+ Novo Admin</button>
           </div>
           <div class="table-wrap">
-            ${renderTabelaAdmins(admins)}
+            ${renderTabelaAdmins(admins, isMaster)}
           </div>
         </div>
       </div>
@@ -117,25 +118,24 @@ async function renderVendedoras() {
       abrirFormAdmin(null);
     });
 
+    document.querySelectorAll('.btn-edit-admin').forEach(btn => {
+      btn.addEventListener('click', () => {
+        abrirFormEditAdmin(btn.dataset.id, btn.dataset.nome, btn.dataset.email);
+      });
+    });
+
     document.querySelectorAll('.btn-del-admin').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (btn.dataset.id === currentUser.id) {
-          toast('Você não pode excluir sua própria conta.', 'error');
-          return;
-        }
-        if (!confirm('Remover este administrador? O acesso será revogado.')) return;
+        if (!confirm('Revogar acesso de administrador? O usuário perderá o acesso.')) return;
         try {
-          const { error } = await _supabase.functions.invoke('create-user', {
+          const { data, error } = await _supabase.functions.invoke('create-user', {
             body: { action: 'delete', userId: btn.dataset.id }
           });
-          if (error) throw error;
+          if (error || data?.error) throw new Error(data?.error || error?.message);
           toast('Administrador removido.');
           renderVendedoras();
         } catch (err) {
-          // Fallback: apenas remove o perfil admin (downgrade para vendedora)
-          await _supabase.from('profiles').update({ role: 'vendedora' }).eq('id', btn.dataset.id);
-          toast('Acesso de admin revogado.');
-          renderVendedoras();
+          toast('Erro: ' + err.message, 'error');
         }
       });
     });
@@ -194,7 +194,7 @@ function renderTabelaVendedoras(vendedoras, comAcesso) {
 }
 
 // ── TABELA ADMINS ──────────────────────────────
-function renderTabelaAdmins(admins) {
+function renderTabelaAdmins(admins, isMaster) {
   if (!admins.length) return `
     <div class="empty-state">
       <div class="icon">🛡</div>
@@ -202,22 +202,34 @@ function renderTabelaAdmins(admins) {
     </div>`;
 
   const rows = admins.map(a => {
-    const isMe = a.id === currentUser?.id;
+    const isMe     = a.id === currentUser?.id;
+    const isTarget = a.is_master;
+    // Master pode editar todos; admin normal só edita a si mesmo
+    const podeEditar = isMaster || isMe;
+    const podeRevogar = isMaster && !isTarget && !isMe;
+
     return `
     <tr>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;flex-shrink:0">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">
             ${(a.nome||'A').charAt(0).toUpperCase()}
           </div>
-          <strong>${a.nome || '—'}</strong>
+          <div>
+            <div style="font-weight:600;font-size:0.88rem">${a.nome || '—'}</div>
+            <div style="font-size:0.75rem;color:var(--text2)">${a.email || '—'}</div>
+          </div>
           ${isMe ? '<span class="badge badge-blue" style="font-size:0.68rem">Você</span>' : ''}
+          ${isTarget ? '<span class="badge badge-yellow" style="font-size:0.68rem">Master</span>' : ''}
         </div>
       </td>
       <td><span class="badge badge-green">🛡 Admin</span></td>
-      <td>${fmtDate(a.created_at?.split('T')[0])}</td>
+      <td style="font-size:0.8rem;color:var(--text2)">${fmtDate(a.created_at?.split('T')[0])}</td>
       <td>
-        ${!isMe ? `<button class="btn-danger btn-sm btn-del-admin" data-id="${a.id}">Revogar</button>` : '<span style="color:var(--text3);font-size:0.8rem">—</span>'}
+        <div style="display:flex;gap:6px;flex-wrap:nowrap">
+          ${podeEditar ? `<button class="btn-ghost btn-sm btn-edit-admin" data-id="${a.id}" data-nome="${a.nome||''}" data-email="${a.email||''}">Editar</button>` : ''}
+          ${podeRevogar ? `<button class="btn-danger btn-sm btn-del-admin" data-id="${a.id}">Revogar</button>` : ''}
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -225,7 +237,7 @@ function renderTabelaAdmins(admins) {
   return `
     <table>
       <thead>
-        <tr><th>Nome</th><th>Perfil</th><th>Desde</th><th>Ações</th></tr>
+        <tr><th>Nome / E-mail</th><th>Perfil</th><th>Desde</th><th>Ações</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -434,6 +446,108 @@ function abrirFormAcesso(v) {
       errEl.textContent = 'Erro: ' + (err.message || 'Não foi possível criar o acesso.');
       errEl.classList.remove('hidden');
       btn.textContent = 'Criar Acesso';
+      btn.disabled = false;
+    }
+  });
+}
+
+// ── FORM EDITAR ADMIN ──────────────────────────
+function abrirFormEditAdmin(userId, nomeAtual, emailAtual) {
+  const isSelf  = userId === currentUser?.id;
+  const isMasterUser = currentProfile?.is_master || false;
+
+  openModal(`
+    <div class="modal-title">✏️ Editar Administrador</div>
+    <div class="modal-subtitle">Altere nome, e-mail ou senha.</div>
+    <form id="form-edit-admin">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Nome *</label>
+          <input type="text" id="ea-nome" value="${nomeAtual}" placeholder="Nome completo" required/>
+        </div>
+        <div class="form-group form-full">
+          <label>E-mail *</label>
+          <input type="email" id="ea-email" value="${emailAtual}" placeholder="email@exemplo.com" required/>
+        </div>
+        <div class="form-group">
+          <label>Nova Senha <span style="color:var(--text2);font-weight:400">(deixe em branco para não alterar)</span></label>
+          <input type="password" id="ea-senha" placeholder="Mínimo 6 caracteres"/>
+        </div>
+        <div class="form-group">
+          <label>Confirmar Senha</label>
+          <input type="password" id="ea-senha2" placeholder="Repita a senha"/>
+        </div>
+      </div>
+      <div id="ea-error" class="login-error hidden"></div>
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" id="btn-cancel-ea">Cancelar</button>
+        <button type="submit" class="btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+
+  document.getElementById('btn-cancel-ea').addEventListener('click', closeModal);
+
+  document.getElementById('form-edit-admin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn    = e.target.querySelector('button[type=submit]');
+    const errEl  = document.getElementById('ea-error');
+    const nome   = document.getElementById('ea-nome').value.trim();
+    const email  = document.getElementById('ea-email').value.trim();
+    const senha  = document.getElementById('ea-senha').value;
+    const senha2 = document.getElementById('ea-senha2').value;
+
+    errEl.classList.add('hidden');
+
+    if (senha && senha.length < 6) {
+      errEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+      errEl.classList.remove('hidden'); return;
+    }
+    if (senha && senha !== senha2) {
+      errEl.textContent = 'As senhas não coincidem.';
+      errEl.classList.remove('hidden'); return;
+    }
+
+    btn.textContent = 'Salvando…';
+    btn.disabled = true;
+
+    try {
+      // Atualizar nome no profile
+      const { error: nomeErr } = await _supabase
+        .from('profiles').update({ nome }).eq('id', userId);
+      if (nomeErr) throw nomeErr;
+
+      // Atualizar e-mail se mudou
+      if (email !== emailAtual) {
+        const { data, error } = await _supabase.functions.invoke('create-user', {
+          body: { action: 'update_email', userId, email }
+        });
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+      }
+
+      // Atualizar senha se preenchida
+      if (senha) {
+        const { data, error } = await _supabase.functions.invoke('create-user', {
+          body: { action: 'update_password', userId, password: senha }
+        });
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+      }
+
+      // Se editou a si mesmo, atualiza localmente
+      if (isSelf && currentProfile) {
+        currentProfile.nome = nome;
+        document.getElementById('user-name').textContent = nome;
+        document.getElementById('user-avatar').textContent = nome.charAt(0).toUpperCase();
+      }
+
+      toast('Administrador atualizado com sucesso!');
+      closeModal();
+      vendedorasTab = 'admins';
+      renderVendedoras();
+    } catch (err) {
+      errEl.textContent = 'Erro: ' + err.message;
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Salvar';
       btn.disabled = false;
     }
   });

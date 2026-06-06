@@ -95,6 +95,16 @@ const db = {
     const { data, error } = await _supabase.from('profiles').select('*');
     if (error) throw error;
     return data || [];
+  },
+
+  // Lista usuários com e-mail (via Edge Function)
+  async listUsers() {
+    const { data, error } = await _supabase.functions.invoke('create-user', {
+      body: { action: 'list_users' }
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data.users || [];
   }
 };
 

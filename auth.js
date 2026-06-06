@@ -98,6 +98,9 @@ async function loadUserProfile(user) {
   document.getElementById('nav-vendedoras').style.display = adminOnly ? '' : 'none';
   document.getElementById('nav-metas').style.display      = adminOnly ? '' : 'none';
   document.getElementById('nav-banco').style.display      = adminOnly ? '' : 'none';
+
+  // Expor is_master globalmente
+  window._isMaster = currentProfile?.is_master || false;
 }
 
 // ══════════════════════════════════════════════
