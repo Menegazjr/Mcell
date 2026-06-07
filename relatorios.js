@@ -23,44 +23,47 @@ async function renderRelatorios() {
       <!-- FILTERS -->
       <div class="panel">
         <div class="panel-title" style="margin-bottom:16px">🔍 Filtros</div>
-        <div class="filter-bar">
-          <div class="form-group" style="min-width:120px">
+        <div class="rel-filter-grid">
+          <div class="form-group">
             <label>Tipo de filtro</label>
             <select id="r-tipo">
               <option value="mes">Por Mês/Ano</option>
               <option value="periodo">Período Personalizado</option>
             </select>
           </div>
-          <div id="filtro-mes" class="filter-bar" style="flex:1;flex-wrap:nowrap;gap:10px">
-            <div class="form-group">
-              <label>Mês</label>
-              <select id="r-mes">${mesOpts}</select>
-            </div>
-            <div class="form-group">
-              <label>Ano</label>
-              <select id="r-ano">${anoOpts}</select>
-            </div>
+
+          <!-- Mês/Ano -->
+          <div class="form-group" id="filtro-mes-wrap">
+            <label>Mês</label>
+            <select id="r-mes">${mesOpts}</select>
           </div>
-          <div id="filtro-periodo" style="display:none;flex:1;gap:10px;display:none" class="filter-bar">
-            <div class="form-group">
-              <label>De</label>
-              <input type="date" id="r-inicio" value="${y}-${m}-01"/>
-            </div>
-            <div class="form-group">
-              <label>Até</label>
-              <input type="date" id="r-fim" value="${y}-${m}-${new Date(y,parseInt(m),0).getDate()}"/>
-            </div>
+          <div class="form-group" id="filtro-ano-wrap">
+            <label>Ano</label>
+            <select id="r-ano">${anoOpts}</select>
           </div>
+
+          <!-- Período personalizado -->
+          <div class="form-group hidden" id="filtro-inicio-wrap">
+            <label>De</label>
+            <input type="date" id="r-inicio" value="${y}-${m}-01"/>
+          </div>
+          <div class="form-group hidden" id="filtro-fim-wrap">
+            <label>Até</label>
+            <input type="date" id="r-fim" value="${y}-${m}-${new Date(y,parseInt(m),0).getDate()}"/>
+          </div>
+
           ${isAdmin() ? `
-          <div class="form-group" style="min-width:160px">
-            <label>Vendedora</label>
+          <div class="form-group">
+            <label>Usuário</label>
             <select id="r-vend">
-              <option value="">Todas</option>
+              <option value="">Todos</option>
               ${vendOpts}
             </select>
           </div>` : ''}
-          <div style="display:flex;align-items:flex-end">
-            <button class="btn-primary" id="btn-gerar-rel">Gerar</button>
+
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn-primary btn-full" id="btn-gerar-rel">Gerar</button>
           </div>
         </div>
       </div>
@@ -72,8 +75,10 @@ async function renderRelatorios() {
     // Toggle filtros
     document.getElementById('r-tipo').addEventListener('change', (e) => {
       const isMes = e.target.value === 'mes';
-      document.getElementById('filtro-mes').style.display    = isMes ? 'flex' : 'none';
-      document.getElementById('filtro-periodo').style.display = isMes ? 'none' : 'flex';
+      document.getElementById('filtro-mes-wrap').classList.toggle('hidden', !isMes);
+      document.getElementById('filtro-ano-wrap').classList.toggle('hidden', !isMes);
+      document.getElementById('filtro-inicio-wrap').classList.toggle('hidden', isMes);
+      document.getElementById('filtro-fim-wrap').classList.toggle('hidden', isMes);
     });
 
     document.getElementById('btn-gerar-rel').addEventListener('click', gerarRelatorio);

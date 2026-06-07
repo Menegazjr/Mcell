@@ -1396,3 +1396,27 @@ tbody tr:hover td { background: var(--border); }
   padding: 10px 14px;
   margin-bottom: 8px;
 }
+
+/* ═══════════════════════════════════════════════
+   RELATÓRIOS — FILTRO GRID
+════════════════════════════════════════════════ */
+.rel-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.rel-filter-grid .form-group { margin: 0; }
+.rel-filter-grid input,
+.rel-filter-grid select { width: 100%; }
+
+@media (max-width: 768px) {
+  .rel-filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .rel-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
