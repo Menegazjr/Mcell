@@ -354,7 +354,7 @@ textarea { resize: vertical; min-height: 80px; }
 ════════════════════════════════════════════════ */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -756,14 +756,16 @@ tbody tr:hover td { background: var(--border); }
    FILTER BAR
 ════════════════════════════════════════════════ */
 .filter-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
-  flex-wrap: wrap;
   margin-bottom: 20px;
-  align-items: flex-end;
+  align-items: end;
 }
-.filter-bar .form-group { margin: 0; flex: 1; min-width: 140px; }
+.filter-bar .form-group { margin: 0; }
 .filter-bar label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); display: block; margin-bottom: 5px; }
+.filter-bar input,
+.filter-bar select { width: 100%; }
 
 /* ═══════════════════════════════════════════════
    RESPONSIVE
