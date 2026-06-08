@@ -290,7 +290,8 @@ function exportarExcel(vendas, periodo) {
   const rows = vendas.map(v => ({
     'Data': fmtDate(v.data_venda),
     'Vendedora': v.vendedoras?.nome || '—',
-    'Modelo': v.modelo_iphone || '—',
+    'Modelo Vendido': v.modelo_iphone || '—',
+    'Aparelho de Entrada': v.aparelho_entrada || '—',
     'Quantidade': v.quantidade || 1,
     'Valor Unitário': parseFloat(v.valor) || 0,
     'Total': (parseFloat(v.valor)||0) * (v.quantidade||1),

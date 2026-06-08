@@ -1420,3 +1420,42 @@ tbody tr:hover td { background: var(--border); }
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   APARELHO DE ENTRADA
+════════════════════════════════════════════════ */
+.entrada-toggle {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+}
+.entrada-check-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+.entrada-check-label input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  accent-color: var(--blue);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+}
+.entrada-fields {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--blue);
+  border-radius: var(--radius);
+  border-top-left-radius: 0;
+  animation: fadeIn 0.2s ease;
+}
