@@ -1459,3 +1459,24 @@ tbody tr:hover td { background: var(--border); }
   border-top-left-radius: 0;
   animation: fadeIn 0.2s ease;
 }
+
+/* ═══════════════════════════════════════════════
+   RESUMO ENTRADA AO VIVO
+════════════════════════════════════════════════ */
+.entrada-resumo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  font-size: 0.87rem;
+  color: var(--text2);
+  flex-wrap: wrap;
+}
+.entrada-resumo strong {
+  color: var(--text);
+  font-family: var(--font-head);
+}

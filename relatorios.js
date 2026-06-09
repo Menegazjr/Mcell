@@ -287,16 +287,20 @@ async function exportarPDF(vendas, periodo, ranking, totalFat, totalApar, ticket
 }
 
 function exportarExcel(vendas, periodo) {
-  const rows = vendas.map(v => ({
-    'Data': fmtDate(v.data_venda),
-    'Vendedora': v.vendedoras?.nome || '—',
-    'Modelo Vendido': v.modelo_iphone || '—',
-    'Aparelho de Entrada': v.aparelho_entrada || '—',
-    'Quantidade': v.quantidade || 1,
-    'Valor Unitário': parseFloat(v.valor) || 0,
-    'Total': (parseFloat(v.valor)||0) * (v.quantidade||1),
-    'Observações': v.observacoes || ''
-  }));
+  const rows = vendas.map(v => {
+    const total = (parseFloat(v.valor||0) + parseFloat(v.valor_entrada||0)) * (v.quantidade||1);
+    return {
+      'Data':                  fmtDate(v.data_venda),
+      'Vendedora':             v.vendedoras?.nome || '—',
+      'Modelo Vendido':        v.modelo_iphone || '—',
+      'Aparelho de Entrada':   v.aparelho_entrada || '—',
+      'Valor Entrada (R$)':    parseFloat(v.valor_entrada || 0),
+      'Valor Pago (R$)':       parseFloat(v.valor || 0),
+      'Quantidade':            v.quantidade || 1,
+      'Total (R$)':            total,
+      'Observações':           v.observacoes || ''
+    };
+  });
 
   const wb  = XLSX.utils.book_new();
   const ws  = XLSX.utils.json_to_sheet(rows);

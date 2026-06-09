@@ -13,7 +13,6 @@ const MODELOS_IPHONE = [
   'Outro'
 ];
 
-// Modelos aceitos como entrada (iPhone 11 pra cima)
 const MODELOS_ENTRADA = [
   'iPhone 16 Pro Max','iPhone 16 Pro','iPhone 16 Plus','iPhone 16',
   'iPhone 15 Pro Max','iPhone 15 Pro','iPhone 15 Plus','iPhone 15',
@@ -24,6 +23,14 @@ const MODELOS_ENTRADA = [
   'iPhone 11 Pro Max','iPhone 11 Pro','iPhone 11',
   'Outro'
 ];
+
+// Total da venda: valor pago + valor de entrada
+function calcTotal(v) {
+  const venda   = parseFloat(v.valor || 0);
+  const entrada = parseFloat(v.valor_entrada || 0);
+  const qtd     = parseInt(v.quantidade || 1);
+  return (venda + entrada) * qtd;
+}
 
 async function renderVendas() {
   const page = document.getElementById('page-vendas');
@@ -73,7 +80,7 @@ async function renderVendas() {
               </select>
             </div>
             <div class="form-group">
-              <label>Valor da Venda (R$) *</label>
+              <label>Valor Pago pelo Cliente (R$) *</label>
               <input type="number" id="v-valor" step="0.01" min="0" placeholder="0,00" required/>
             </div>
             <div class="form-group">
@@ -90,17 +97,30 @@ async function renderVendas() {
           <div class="entrada-toggle">
             <label class="entrada-check-label">
               <input type="checkbox" id="v-tem-entrada"/>
-              <span class="entrada-check-box"></span>
-              Cliente tem aparelho de entrada
+              <span>Cliente tem aparelho de entrada</span>
             </label>
           </div>
+
           <div id="entrada-fields" class="entrada-fields hidden">
-            <div class="form-group">
-              <label>Modelo do Aparelho de Entrada</label>
-              <select id="v-entrada">
-                <option value="">Selecionar modelo…</option>
-                ${entradaOptions}
-              </select>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Modelo do Aparelho de Entrada *</label>
+                <select id="v-entrada">
+                  <option value="">Selecionar modelo…</option>
+                  ${entradaOptions}
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Valor do Aparelho de Entrada (R$) *</label>
+                <input type="number" id="v-valor-entrada" step="0.01" min="0" placeholder="0,00"/>
+              </div>
+            </div>
+            <div class="entrada-resumo hidden" id="entrada-resumo">
+              <span>Valor pago: <strong id="res-pago">—</strong></span>
+              <span>+</span>
+              <span>Entrada: <strong id="res-entrada">—</strong></span>
+              <span>=</span>
+              <span>Total: <strong id="res-total" style="color:var(--blue)">—</strong></span>
             </div>
           </div>
 
@@ -121,11 +141,30 @@ async function renderVendas() {
       </div>
     `;
 
-    // Toggle aparelho de entrada
+    // Toggle entrada
     document.getElementById('v-tem-entrada').addEventListener('change', (e) => {
       document.getElementById('entrada-fields').classList.toggle('hidden', !e.target.checked);
-      if (!e.target.checked) document.getElementById('v-entrada').value = '';
+      if (!e.target.checked) {
+        document.getElementById('v-entrada').value = '';
+        document.getElementById('v-valor-entrada').value = '';
+        document.getElementById('entrada-resumo').classList.add('hidden');
+      }
     });
+
+    // Calcular resumo ao vivo
+    function atualizarResumo() {
+      const pago    = parseFloat(document.getElementById('v-valor').value) || 0;
+      const entrada = parseFloat(document.getElementById('v-valor-entrada')?.value) || 0;
+      const temEntrada = document.getElementById('v-tem-entrada').checked;
+      if (temEntrada && (pago > 0 || entrada > 0)) {
+        document.getElementById('entrada-resumo').classList.remove('hidden');
+        document.getElementById('res-pago').textContent    = fmt(pago);
+        document.getElementById('res-entrada').textContent = fmt(entrada);
+        document.getElementById('res-total').textContent   = fmt(pago + entrada);
+      }
+    }
+    document.getElementById('v-valor').addEventListener('input', atualizarResumo);
+    document.getElementById('v-valor-entrada')?.addEventListener('input', atualizarResumo);
 
     // Submit
     document.getElementById('form-venda').addEventListener('submit', async (e) => {
@@ -134,8 +173,9 @@ async function renderVendas() {
       btn.textContent = 'Salvando…';
       btn.disabled = true;
 
-      const temEntrada = document.getElementById('v-tem-entrada').checked;
-      const entrada    = document.getElementById('v-entrada').value || null;
+      const temEntrada   = document.getElementById('v-tem-entrada').checked;
+      const entrada      = document.getElementById('v-entrada').value || null;
+      const valorEntrada = parseFloat(document.getElementById('v-valor-entrada')?.value) || 0;
 
       if (temEntrada && !entrada) {
         toast('Selecione o modelo do aparelho de entrada.', 'error');
@@ -143,16 +183,23 @@ async function renderVendas() {
         btn.disabled = false;
         return;
       }
+      if (temEntrada && valorEntrada <= 0) {
+        toast('Informe o valor do aparelho de entrada.', 'error');
+        btn.textContent = 'Registrar Venda';
+        btn.disabled = false;
+        return;
+      }
 
       try {
         await db.insertVenda({
-          vendedora_id:    document.getElementById('v-vendedora').value,
-          data_venda:      document.getElementById('v-data').value,
-          modelo_iphone:   document.getElementById('v-modelo').value,
-          valor:           parseFloat(document.getElementById('v-valor').value),
-          quantidade:      parseInt(document.getElementById('v-qtd').value) || 1,
-          observacoes:     document.getElementById('v-obs').value || null,
-          aparelho_entrada: temEntrada ? entrada : null
+          vendedora_id:     document.getElementById('v-vendedora').value,
+          data_venda:       document.getElementById('v-data').value,
+          modelo_iphone:    document.getElementById('v-modelo').value,
+          valor:            parseFloat(document.getElementById('v-valor').value),
+          quantidade:       parseInt(document.getElementById('v-qtd').value) || 1,
+          observacoes:      document.getElementById('v-obs').value || null,
+          aparelho_entrada: temEntrada ? entrada : null,
+          valor_entrada:    temEntrada ? valorEntrada : 0
         });
         toast('Venda registrada com sucesso!');
         renderVendas();
@@ -186,22 +233,30 @@ async function renderVendas() {
 function renderTabelaVendas(vendas) {
   if (!vendas.length) return `<div class="empty-state"><div class="icon">◫</div><p>Nenhuma venda no período.</p></div>`;
 
-  const rows = vendas.map(v => `
+  const rows = vendas.map(v => {
+    const temEntrada = !!v.aparelho_entrada;
+    const total      = calcTotal(v);
+    return `
     <tr>
       <td>${fmtDate(v.data_venda)}</td>
       <td>${v.vendedoras?.nome || '—'}</td>
       <td>${v.modelo_iphone || '—'}</td>
       <td>
-        ${v.aparelho_entrada
-          ? `<span class="badge badge-yellow" title="Entrada: ${v.aparelho_entrada}">↩ ${v.aparelho_entrada}</span>`
+        ${temEntrada
+          ? `<div style="font-size:0.82rem">${v.aparelho_entrada}</div>`
           : '<span style="color:var(--text3)">—</span>'}
       </td>
-      <td>${v.quantidade || 1}</td>
+      <td class="td-mono">
+        ${temEntrada
+          ? `<span style="color:var(--text2)">${fmt(v.valor_entrada)}</span>`
+          : '<span style="color:var(--text3)">—</span>'}
+      </td>
       <td class="td-mono">${fmt(v.valor)}</td>
-      <td class="td-mono" style="color:var(--blue)">${fmt((v.valor||0)*(v.quantidade||1))}</td>
+      <td class="td-mono" style="color:var(--blue);font-weight:600">${fmt(total)}</td>
       <td style="color:var(--text2);font-size:0.8rem">${v.observacoes || '—'}</td>
       ${isAdmin() ? `<td><button class="btn-danger btn-sm btn-del-venda" data-id="${v.id}">Excluir</button></td>` : ''}
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   return `
     <table>
@@ -211,8 +266,8 @@ function renderTabelaVendas(vendas) {
           <th>Usuário</th>
           <th>Modelo</th>
           <th>Entrada</th>
-          <th>Qtd</th>
-          <th>Valor Unit.</th>
+          <th>Vlr Entrada</th>
+          <th>Vlr Pago</th>
           <th>Total</th>
           <th>Obs.</th>
           ${isAdmin() ? '<th></th>' : ''}
