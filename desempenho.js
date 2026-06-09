@@ -30,18 +30,22 @@ async function renderDesempenho() {
       ? (_selectedVendedoraDesemp || (todasVendedoras[0]?.id || null))
       : vendedoraId;
 
-    const [vendas, meta, vendedoras] = await Promise.all([
+    const [vendas, meta, vendedoras, metasInd] = await Promise.all([
       db.getVendas({ mes: currentMes, ano: currentAno, vendedora_id: vendedoraIdFinal || undefined }),
       db.getMeta(currentMes, currentAno),
-      isAdmin() ? Promise.resolve(todasVendedoras) : db.getVendedoras(true)
+      isAdmin() ? Promise.resolve(todasVendedoras) : db.getVendedoras(true),
+      db.getMetasIndividuais(currentMes, currentAno)
     ]);
 
     const ativas     = vendedoras.filter(v => v.status === 'ativa');
-    const numAtivas  = ativas.length || 1;
-    const metaFat    = meta?.meta_faturamento || 0;
-    const metaApar   = meta?.meta_aparelhos   || 0;
-    
-    const metaIndApar= metaApar / numAtivas;
+    const metaApar   = meta?.meta_aparelhos || 0;
+
+    // Usa distribuição real (manual ou automática)
+    const distrib        = typeof calcDistribuicao === 'function'
+      ? calcDistribuicao(metaApar, ativas, metasInd)
+      : { lista: [], metaAuto: metaApar / (ativas.length || 1) };
+    const metaIndividual = distrib.lista.find(d => d.vendedora_id === vendedoraIdFinal);
+    const metaIndApar    = metaIndividual?.meta ?? distrib.metaAuto;
 
     // Totais
     const totalFat  = vendas.reduce((s, v) => s + (parseFloat(v.valor) * (v.quantidade || 1)), 0);

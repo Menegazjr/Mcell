@@ -369,17 +369,21 @@ async function exportarPDF(vendas, periodo, ranking, totalFat, totalApar, ticket
 
 function exportarExcel(vendas, periodo) {
   const rows = vendas.map(v => {
-    const total = (parseFloat(v.valor||0) + parseFloat(v.valor_entrada||0)) * (v.quantidade||1);
+    const entradas    = (v.entradas && v.entradas.length > 0) ? v.entradas
+                      : v.aparelho_entrada ? [{modelo: v.aparelho_entrada, valor: parseFloat(v.valor_entrada||0)}]
+                      : [];
+    const totEnt  = entradas.reduce((s,e) => s + parseFloat(e.valor||0), 0);
+    const total   = (parseFloat(v.valor||0) + totEnt) * (v.quantidade||1);
     return {
-      'Data':                  fmtDate(v.data_venda),
-      'Vendedora':             v.vendedoras?.nome || '—',
-      'Modelo Vendido':        v.modelo_iphone || '—',
-      'Aparelho de Entrada':   v.aparelho_entrada || '—',
-      'Valor Entrada (R$)':    parseFloat(v.valor_entrada || 0),
-      'Valor Pago (R$)':       parseFloat(v.valor || 0),
-      'Quantidade':            v.quantidade || 1,
-      'Total (R$)':            total,
-      'Observações':           v.observacoes || ''
+      'Data':               fmtDate(v.data_venda),
+      'Vendedora':          v.vendedoras?.nome || '—',
+      'Modelo Vendido':     v.modelo_iphone || '—',
+      'Aparelhos Entrada':  entradas.length > 0 ? entradas.map(e=>e.modelo).join(' | ') : '—',
+      'Vlr Entradas (R$)':  totEnt,
+      'Valor Pago (R$)':    parseFloat(v.valor || 0),
+      'Quantidade':         v.quantidade || 1,
+      'Total (R$)':         total,
+      'Observações':        v.observacoes || ''
     };
   });
 
