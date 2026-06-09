@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════
 
 // Mude esse número a cada deploy para forçar atualização
-const CACHE_VERSION = 'mcell-v12';
+const CACHE_VERSION = 'mcell-v12.1';
 
 const STATIC_FILES = [
   '/Mcell/',
