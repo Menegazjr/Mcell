@@ -211,76 +211,153 @@ function cardR(label, value) {
 // ── EXPORTS ────────────────────────────────────
 async function exportarPDF(vendas, periodo, ranking, totalFat, totalApar, ticketMed) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: 'landscape' }); // paisagem para caber mais colunas
+  const PW = 297; // largura A4 paisagem
 
-  // Header
-  doc.setFillColor(10, 10, 15);
-  doc.rect(0, 0, 210, 40, 'F');
+  // ── HEADER ──────────────────────────────────
+  doc.setFillColor(26, 26, 26);
+  doc.rect(0, 0, PW, 22, 'F');
+  doc.setFillColor(252, 76, 4);
+  doc.rect(0, 22, PW, 3, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('MCELL', 14, 18);
-  doc.setFontSize(10);
+  doc.text('MCELL', 14, 14);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(136, 136, 160);
-  doc.text('Relatório de Vendas — ' + periodo, 14, 28);
-  doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR'), 14, 35);
+  doc.setTextColor(200, 180, 160);
+  doc.text('Relatorio de Vendas — ' + periodo, 60, 10);
+  doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR'), 60, 17);
 
-  // KPIs
+  let y = 34;
+
+  // ── RESUMO ───────────────────────────────────
   doc.setTextColor(30, 30, 30);
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Resumo', 14, 52);
+  doc.text('Resumo', 14, y); y += 8;
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.text(`Faturamento Total: ${fmt(totalFat)}`, 14, 62);
-  doc.text(`Aparelhos Vendidos: ${fmtNum(totalApar)}`, 14, 70);
-  doc.text(`Ticket Médio: ${fmt(ticketMed)}`, 14, 78);
-  doc.text(`Total de Vendas: ${vendas.length}`, 14, 86);
 
-  // Ranking
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Ranking de Vendedoras', 14, 100);
-  let y = 110;
-  ranking.forEach(([nome, d], i) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`${i+1}. ${nome} — ${fmt(d.fat)} (${fmtNum(d.apar)} aparelhos)`, 14, y);
+  if (isAdmin()) {
+    doc.text(`Faturamento Total: ${fmt(totalFat)}`, 14, y);
+    doc.text(`Aparelhos Vendidos: ${fmtNum(totalApar)}`, 80, y);
+    doc.text(`Ticket Medio: ${fmt(ticketMed)}`, 150, y);
+    doc.text(`Total de Registros: ${vendas.length}`, 220, y);
     y += 8;
+
+    // ── RANKING ─────────────────────────────────
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Ranking', 14, y); y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    ranking.forEach(([nome, d], i) => {
+      doc.text(`${i+1}. ${nome} — ${fmt(d.fat)} | ${fmtNum(d.apar)} aparelhos`, 14, y);
+      y += 6;
+    });
+    y += 4;
+  } else {
+    doc.text(`Aparelhos Vendidos: ${fmtNum(totalApar)}`, 14, y);
+    doc.text(`Total de Registros: ${vendas.length}`, 80, y);
+    y += 10;
+  }
+
+  // ── TABELA ───────────────────────────────────
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Vendas Detalhadas', 14, y); y += 6;
+
+  // Linha separadora laranja
+  doc.setDrawColor(252, 76, 4);
+  doc.setLineWidth(0.5);
+  doc.line(14, y, PW - 14, y); y += 4;
+
+  // Cabeçalho da tabela
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+
+  // Colunas: Data | Vendedora | Modelo Vendido | Ap. Entrada | Vlr Entrada | Vlr Pago | Qtd | Total | Obs
+  const cols = [
+    { label: 'Data',         x: 14  },
+    { label: 'Vendedora',    x: 34  },
+    { label: 'Modelo Vendido', x: 66 },
+    { label: 'Ap. Entrada',  x: 116 },
+    { label: 'Vlr Entrada',  x: 158 },
+    { label: 'Vlr Pago',     x: 184 },
+    { label: 'Qtd',          x: 210 },
+    { label: 'Total',        x: 220 },
+    { label: 'Obs.',         x: 248 },
+  ];
+  cols.forEach(col => doc.text(col.label, col.x, y));
+  y += 5;
+
+  // Linha separadora
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, PW - 14, y); y += 3;
+
+  // Linhas de dados
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  let bgToggle = false;
+
+  vendas.forEach(v => {
+    if (y > 190) {
+      doc.addPage();
+      // Recriar cabeçalho na nova página
+      doc.setFillColor(26, 26, 26);
+      doc.rect(0, 0, PW, 12, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica','bold');
+      doc.text('MCELL — ' + periodo, 14, 8);
+      y = 20;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica','bold');
+      doc.setTextColor(80,80,80);
+      cols.forEach(col => doc.text(col.label, col.x, y));
+      y += 5;
+      doc.setDrawColor(200,200,200);
+      doc.line(14, y, PW-14, y); y += 3;
+      doc.setFont('helvetica','normal');
+    }
+
+    // Fundo alternado
+    if (bgToggle) {
+      doc.setFillColor(248, 248, 250);
+      doc.rect(14, y - 4, PW - 28, 7, 'F');
+    }
+    bgToggle = !bgToggle;
+
+    const temEntrada = !!v.aparelho_entrada;
+    const total = (parseFloat(v.valor||0) + parseFloat(v.valor_entrada||0)) * (v.quantidade||1);
+
+    doc.setTextColor(30, 30, 30);
+    doc.text(fmtDate(v.data_venda),                          cols[0].x, y);
+    doc.text((v.vendedoras?.nome||'').slice(0,14),           cols[1].x, y);
+    doc.text((v.modelo_iphone||'').slice(0,20),              cols[2].x, y);
+    doc.text(temEntrada ? (v.aparelho_entrada||'').slice(0,16) : '—', cols[3].x, y);
+    doc.text(temEntrada ? fmt(v.valor_entrada) : '—',        cols[4].x, y);
+    doc.text(fmt(v.valor),                                   cols[5].x, y);
+    doc.text(String(v.quantidade||1),                        cols[6].x, y);
+
+    // Total em laranja
+    doc.setTextColor(252, 76, 4);
+    doc.setFont('helvetica', 'bold');
+    doc.text(fmt(total),                                     cols[7].x, y);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'normal');
+
+    doc.text((v.observacoes||'').slice(0,20),                cols[8].x, y);
+    y += 7;
   });
 
-  // Table
-  if (y < 200) {
-    y += 10;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Vendas Detalhadas', 14, y);
-    y += 10;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Data', 14, y);
-    doc.text('Vendedora', 38, y);
-    doc.text('Modelo', 80, y);
-    doc.text('Qtd', 140, y);
-    doc.text('Valor', 155, y);
-    doc.text('Total', 180, y);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    vendas.slice(0, 30).forEach(v => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(fmtDate(v.data_venda), 14, y);
-      doc.text((v.vendedoras?.nome||'').slice(0,18), 38, y);
-      doc.text((v.modelo_iphone||'').slice(0,20), 80, y);
-      doc.text(String(v.quantidade||1), 140, y);
-      doc.text(fmt(v.valor), 152, y);
-      doc.text(fmt((v.valor||0)*(v.quantidade||1)), 178, y);
-      y += 7;
-    });
-    if (vendas.length > 30) {
-      doc.text(`... e mais ${vendas.length-30} vendas (use Excel para ver tudo)`, 14, y);
-    }
-  }
+  // Rodapé
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Mcell Assistencia Tecnica e Acessorios  |  ' + new Date().toLocaleString('pt-BR'), 14, 200);
 
   doc.save(`mcell-relatorio-${periodo.replace('/','-')}.pdf`);
   toast('PDF gerado!');

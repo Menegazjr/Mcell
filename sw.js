@@ -4,7 +4,7 @@
 // Não bloqueia nunca — sempre retorna algo
 // ═══════════════════════════════════════════════
 
-const CACHE_VERSION = 'mcell-v13';
+const CACHE_VERSION = 'mcell-v14';
 
 const STATIC_FILES = [
   '/Mcell/',
