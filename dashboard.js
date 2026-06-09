@@ -10,10 +10,11 @@ async function renderDashboard() {
   page.innerHTML = `<div class="spinner"></div>`;
 
   try {
-    const [vendas, vendedoras, meta] = await Promise.all([
+    const [vendas, vendedoras, meta, metasInd] = await Promise.all([
       db.getVendas({ mes: currentMes, ano: currentAno }),
       db.getVendedoras(),
-      db.getMeta(currentMes, currentAno)
+      db.getMeta(currentMes, currentAno),
+      db.getMetasIndividuais(currentMes, currentAno)
     ]);
 
     const ativas    = vendedoras.filter(v => v.status === 'ativa');
@@ -25,8 +26,11 @@ async function renderDashboard() {
     const pctApar   = pct(totalApar, metaApar);
     const ticketMedio = totalApar > 0 ? (totalFat / totalApar) : 0;
 
-    // Meta individual de aparelhos
-    const metaIndApar = metaApar / numAtivas;
+    // Distribuição real (manual ou automática)
+    const distrib     = typeof calcDistribuicao === 'function'
+      ? calcDistribuicao(metaApar, ativas, metasInd)
+      : { lista: [], metaAuto: metaApar / numAtivas };
+    const metaIndApar = distrib.metaAuto;
 
     // Vendas por vendedora
     const byVend = {};
@@ -46,7 +50,7 @@ async function renderDashboard() {
     });
     const sortedDays = Object.keys(byDay).sort();
 
-    const vendedoraSection = isAdmin() ? renderVendedoraCards(ativas, byVend, metaIndApar) : '';
+    const vendedoraSection = isAdmin() ? renderVendedoraCards(ativas, byVend, metaIndApar, distrib) : '';
 
     if (isAdmin()) {
       page.innerHTML = `
@@ -173,12 +177,14 @@ function renderRanking(byVend) {
     </div>`).join('');
 }
 
-function renderVendedoraCards(ativas, byVend, metaIndApar) {
+function renderVendedoraCards(ativas, byVend, metaIndApar, distrib) {
   if (!ativas.length) return '';
   const cards = ativas.map(v => {
     const d = byVend[v.nome] || { fat: 0, apar: 0 };
-    const p = pct(d.apar, metaIndApar);
-    const faltaAp = Math.max(0, Math.ceil(metaIndApar - d.apar));
+    // Usa meta individual real se disponível
+    const metaInd = distrib?.lista?.find(x => x.vendedora_id === v.id)?.meta || metaIndApar;
+    const p = pct(d.apar, metaInd);
+    const faltaAp = Math.max(0, Math.ceil(metaInd - d.apar));
     return `
       <div class="vendor-card">
         <div class="vendor-card-header">
@@ -192,7 +198,7 @@ function renderVendedoraCards(ativas, byVend, metaIndApar) {
           </div>
           <div class="vstat">
             <div class="vstat-label">Meta Individual</div>
-            <div class="vstat-val">${metaIndApar.toFixed(1)} un.</div>
+            <div class="vstat-val">${metaInd.toFixed(1)} un.</div>
           </div>
           <div class="vstat">
             <div class="vstat-label">Faltam</div>
@@ -204,7 +210,7 @@ function renderVendedoraCards(ativas, byVend, metaIndApar) {
         <div class="progress-track">
           <div class="progress-fill" style="width:${p}%;background:${progressColor(p)}"></div>
         </div>
-        <div class="pct-label">${p}% da meta · Faltam ${faltaAp} aparelhos</div>
+        <div class="pct-label">${p}% da meta · Faltam ${faltaAp} aparelhos${distrib?.lista?.find(x=>x.vendedora_id===v.id)?.isManual?' · <span class="badge badge-yellow" style="font-size:0.68rem">Manual</span>':''}</div>
       </div>`;
   });
 

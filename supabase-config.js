@@ -8,6 +8,22 @@ const SUPABASE_ANON_KEY = 'sb_publishable_ImmEaR63chN5SrpvFeuXUw_VIybjhjt';
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── TIMEOUT GLOBAL ─────────────────────────────
+// Cancela qualquer fetch que demorar mais de 12s
+// Evita tela travada no PWA quando a rede cai
+const _originalFetch = window.fetch;
+window.fetch = function(input, init = {}) {
+  // Não aplica timeout para arquivos locais/cache
+  const url = typeof input === 'string' ? input : input?.url || '';
+  if (!url.includes('supabase.co') && !url.includes('supabase.io')) {
+    return _originalFetch(input, init);
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  return _originalFetch(input, { ...init, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+};
+
 // ── HELPERS ───────────────────────────────────
 const db = {
   // Vendedoras
@@ -79,6 +95,32 @@ const db = {
     const { data, error } = await _supabase.from('metas').select('*').order('ano').order('mes');
     if (error) throw error;
     return data || [];
+  },
+
+  // Metas individuais
+  async getMetasIndividuais(mes, ano) {
+    const { data, error } = await _supabase
+      .from('metas_individuais')
+      .select('*, vendedoras(nome)')
+      .eq('mes', mes)
+      .eq('ano', ano);
+    if (error) throw error;
+    return data || [];
+  },
+  async upsertMetaIndividual(m) {
+    const { data, error } = await _supabase
+      .from('metas_individuais')
+      .upsert(m, { onConflict: 'mes,ano,vendedora_id' })
+      .select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deleteMetaIndividual(mes, ano, vendedora_id) {
+    const { error } = await _supabase
+      .from('metas_individuais')
+      .delete()
+      .eq('mes', mes).eq('ano', ano).eq('vendedora_id', vendedora_id);
+    if (error) throw error;
   },
 
   // Profiles
