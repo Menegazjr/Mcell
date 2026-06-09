@@ -14,7 +14,11 @@ async function renderRelatorios() {
     const hoje = new Date();
     const y = hoje.getFullYear();
     const m = String(hoje.getMonth()+1).padStart(2,'0');
-    const anoOpts = [2024,2025,2026,2027].map(a =>
+    // Anos: de 2026 até o próximo ano, cresce automaticamente
+    const anoAtual = new Date().getFullYear();
+    const anos = [];
+    for (let a = 2026; a <= anoAtual + 1; a++) anos.push(a);
+    const anoOpts = anos.map(a =>
       `<option value="${a}" ${a===parseInt(currentAno)?'selected':''}>${a}</option>`).join('');
     const mesOpts = [...Array(12)].map((_,i) =>
       `<option value="${i+1}" ${(i+1)===parseInt(currentMes)?'selected':''}>${mesToNomeCompleto(i+1)}</option>`).join('');

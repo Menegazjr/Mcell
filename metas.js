@@ -212,7 +212,16 @@ function abrirFormMeta(meta) {
         </div>
         <div class="form-group">
           <label>Ano *</label>
-          <input type="number" id="fm-ano" min="2020" max="2099" value="${meta?.ano || currentAno}"/>
+          <select id="fm-ano">
+            ${(() => {
+              const anoAtual = new Date().getFullYear();
+              const opts = [];
+              for (let a = 2026; a <= anoAtual + 1; a++) {
+                opts.push(`<option value="${a}" ${(meta?.ano||currentAno)===a?'selected':''}>${a}</option>`);
+              }
+              return opts.join('');
+            })()}
+          </select>
         </div>
         <div class="form-group form-full">
           <label>Meta Total de Aparelhos *</label>
