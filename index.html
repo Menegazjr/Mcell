@@ -218,6 +218,11 @@
 <!-- TOAST -->
 <div id="toast" class="toast hidden"></div>
 
+<!-- BOTÃO DE RECUPERAÇÃO (aparece se travar) -->
+<button id="btn-recovery" class="recovery-btn hidden" onclick="recoveryApp()">
+  ↺ Recarregar
+</button>
+
 <!-- Banner offline -->
 <div id="offline-banner" class="offline-banner hidden">
   📡 Sem conexão — algumas funções estão indisponíveis
@@ -275,6 +280,38 @@
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
   updateOnlineStatus();
+
+  // Detector de tela travada
+  // Se o modal-overlay ficar visível por mais de 30s sem interação, fecha
+  let _lastInteraction = Date.now();
+  document.addEventListener('touchstart', () => _lastInteraction = Date.now());
+  document.addEventListener('click',      () => _lastInteraction = Date.now());
+
+  setInterval(() => {
+    const overlay = document.getElementById('modal-overlay');
+    const sinceInteraction = Date.now() - _lastInteraction;
+
+    // Se overlay ficou aberto por mais de 30s sem toque, fecha
+    if (overlay && !overlay.classList.contains('hidden') && sinceInteraction > 30000) {
+      overlay.classList.add('hidden');
+    }
+
+    // Mostra botão de recuperação se a página principal travar por mais de 20s
+    const activePage = document.querySelector('.page.active');
+    const hasSpinner = activePage?.querySelector('.spinner');
+    const btn = document.getElementById('btn-recovery');
+    if (btn) {
+      btn.classList.toggle('hidden', !(hasSpinner && sinceInteraction > 20000));
+    }
+  }, 5000);
+
+  // Função de recuperação
+  window.recoveryApp = function() {
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    document.getElementById('btn-recovery')?.classList.add('hidden');
+    if (typeof refreshCurrentPage === 'function') refreshCurrentPage();
+  };
 </script>
 </body>
 </html>

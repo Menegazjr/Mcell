@@ -56,6 +56,8 @@ function buildMonthSelector() {
 
 // ── NAVIGATION ─────────────────────────────────
 let currentPage = 'dashboard';
+let _rendering  = false;   // evita render duplo
+let _renderTimer = null;   // timeout de segurança
 
 function setupNavigation() {
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -100,6 +102,23 @@ function navigateTo(page) {
 }
 
 function refreshCurrentPage() {
+  // Cancela render anterior se ainda estiver rodando
+  clearTimeout(_renderTimer);
+
+  // Timeout de segurança: se após 15s a página ainda tiver spinner, mostra erro
+  _renderTimer = setTimeout(() => {
+    const page = document.getElementById(`page-${currentPage}`);
+    if (page && page.querySelector('.spinner')) {
+      page.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">⚡</div>
+          <p>A conexão demorou muito.<br>
+          <button class="btn-primary btn-sm" style="margin-top:12px"
+            onclick="refreshCurrentPage()">Tentar novamente</button></p>
+        </div>`;
+    }
+  }, 15000);
+
   switch(currentPage) {
     case 'dashboard':  renderDashboard();  break;
     case 'vendas':     renderVendas();     break;

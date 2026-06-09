@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════
-// MCELL — SERVICE WORKER
-// Atualiza automaticamente quando há nova versão
+// MCELL — SERVICE WORKER v13
+// Cache estático + network-first para JS/CSS/HTML
+// Não bloqueia nunca — sempre retorna algo
 // ═══════════════════════════════════════════════
 
-// Mude esse número a cada deploy para forçar atualização
-const CACHE_VERSION = 'mcell-v12.1';
+const CACHE_VERSION = 'mcell-v13';
 
 const STATIC_FILES = [
   '/Mcell/',
@@ -23,6 +23,7 @@ const STATIC_FILES = [
   '/Mcell/perfil.js',
   '/Mcell/logomcell.png',
   '/Mcell/icon-pwa.png',
+  '/Mcell/favicon.ico',
 ];
 
 // ── INSTALL ────────────────────────────────────
@@ -31,25 +32,21 @@ self.addEventListener('install', event => {
     caches.open(CACHE_VERSION).then(cache =>
       Promise.allSettled(
         STATIC_FILES.map(url =>
-          cache.add(url).catch(() => console.warn('Cache falhou:', url))
+          cache.add(url).catch(() => {})
         )
       )
-    // Força ativação imediata sem esperar fechar abas
     ).then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE — limpa caches antigos ───────────
+// ── ACTIVATE ───────────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_VERSION).map(k => {
-          console.log('Removendo cache antigo:', k);
-          return caches.delete(k);
-        })
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -57,12 +54,18 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Supabase sempre vai para a rede
-  if (url.hostname.includes('supabase.co')) {
+  // Supabase: sempre rede, nunca cache, sem bloquear
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('supabase.io')) {
     event.respondWith(
-      fetch(event.request).catch(() =>
+      Promise.race([
+        fetch(event.request),
+        // Timeout de 12s — nunca trava indefinidamente
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 12000)
+        )
+      ]).catch(() =>
         new Response(
-          JSON.stringify({ error: 'Sem conexão com o banco de dados.' }),
+          JSON.stringify({ error: 'Conexão lenta ou sem internet.' }),
           { status: 503, headers: { 'Content-Type': 'application/json' } }
         )
       )
@@ -70,61 +73,50 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML: network first — sempre tenta buscar versão mais nova
-  // Se falhar (offline), usa o cache
-  if (event.request.destination === 'document' ||
-      event.request.url.includes('index.html')) {
+  // Fontes e CDNs externos: cache first, sem bloquear
+  if (!url.hostname.includes('menegazjr.github.io')) {
     event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_VERSION).then(cache =>
-            cache.put(event.request, clone)
-          );
-          return response;
-        })
-        .catch(() => caches.match(event.request))
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request)
+          .then(res => {
+            if (res && res.status === 200) {
+              const clone = res.clone();
+              caches.open(CACHE_VERSION).then(c => c.put(event.request, clone));
+            }
+            return res;
+          })
+          .catch(() => new Response('', { status: 408 }));
+      })
     );
     return;
   }
 
-  // JS e CSS: network first também, para pegar atualizações
-  if (event.request.destination === 'script' ||
-      event.request.destination === 'style') {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_VERSION).then(cache =>
-            cache.put(event.request, clone)
-          );
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Imagens e resto: cache first
+  // Arquivos do app: network first com fallback para cache
+  // HTML/JS/CSS sempre tentam rede primeiro para pegar atualizações
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_VERSION).then(cache =>
-            cache.put(event.request, clone)
-          );
+    Promise.race([
+      fetch(event.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_VERSION).then(c => c.put(event.request, clone));
         }
-        return response;
-      }).catch(() => caches.match('/Mcell/index.html'));
-    })
+        return res;
+      }),
+      // Timeout de 8s para arquivos do app
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 8000)
+      )
+    ]).catch(() =>
+      // Se rede falhar ou timeout: usa cache
+      caches.match(event.request).then(cached =>
+        cached || caches.match('/Mcell/index.html')
+      )
+    )
   );
 });
 
-// ── MENSAGEM — força reload quando há update ──
+// ── MENSAGEM ───────────────────────────────────
 self.addEventListener('message', event => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });

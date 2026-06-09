@@ -1480,3 +1480,26 @@ tbody tr:hover td { background: var(--border); }
   color: var(--text);
   font-family: var(--font-head);
 }
+
+/* ═══════════════════════════════════════════════
+   BOTÃO DE RECUPERAÇÃO (PWA freeze)
+════════════════════════════════════════════════ */
+.recovery-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 9998;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.87rem;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 99px;
+  box-shadow: 0 4px 20px var(--blue-glow);
+  animation: slideLeft 0.3s ease;
+  cursor: pointer;
+}
+.recovery-btn:active {
+  transform: scale(0.96);
+}
