@@ -501,20 +501,33 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
 
     btn.textContent = 'Salvando…'; btn.disabled = true;
     const entradas = temEntr ? _editEntradas : [];
-    const totEnt   = entradas.reduce((s,e)=>s+e.valor,0);
+    const totEnt   = entradas.reduce((s,e)=>s+(parseFloat(e.valor)||0), 0);
+
+    // Garante leitura correta dos campos do modal
+    const novoValor = parseFloat(String(document.getElementById('ev-valor')?.value || '0').replace(',', '.')) || 0;
+    const novaQtd   = parseInt(document.getElementById('ev-qtd')?.value) || 1;
+
+    if (novoValor <= 0) {
+      errEl.textContent = 'Informe um valor válido maior que zero.';
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Salvar Alterações'; btn.disabled = false;
+      return;
+    }
+
+    const payload = {
+      vendedora_id:     isAdmin() ? (document.getElementById('ev-vendedora')?.value || v.vendedora_id) : v.vendedora_id,
+      data_venda:       document.getElementById('ev-data')?.value || v.data_venda,
+      modelo_iphone:    document.getElementById('ev-modelo')?.value || v.modelo_iphone,
+      valor:            novoValor,
+      quantidade:       novaQtd,
+      observacoes:      document.getElementById('ev-obs')?.value || null,
+      aparelho_entrada: entradas.length===1 ? entradas[0].modelo : entradas.length>1 ? `${entradas.length} aparelhos` : null,
+      valor_entrada:    totEnt || 0,
+      entradas:         entradas
+    };
 
     try {
-      await db.updateVenda(v.id, {
-        vendedora_id:     isAdmin() ? document.getElementById('ev-vendedora').value : v.vendedora_id,
-        data_venda:       document.getElementById('ev-data').value,
-        modelo_iphone:    document.getElementById('ev-modelo').value,
-        valor:            parseFloat(document.getElementById('ev-valor').value),
-        quantidade:       parseInt(document.getElementById('ev-qtd').value)||1,
-        observacoes:      document.getElementById('ev-obs').value||null,
-        aparelho_entrada: entradas.length===1 ? entradas[0].modelo : entradas.length>1 ? `${entradas.length} aparelhos` : null,
-        valor_entrada:    totEnt||0,
-        entradas:         entradas
-      });
+      await db.updateVenda(v.id, payload);
       toast('Venda atualizada!');
       closeModal();
       await renderVendas();
