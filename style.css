@@ -1595,3 +1595,53 @@ tbody tr:hover td { background: var(--border); }
     grid-template-columns: 1fr 100px 32px;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   TABELA COM SCROLL FIXO
+════════════════════════════════════════════════ */
+.table-scroll-wrap {
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.table-scroll-wrap table {
+  min-width: 700px;
+}
+.thead-sticky th {
+  position: sticky;
+  top: 0;
+  background: var(--bg2);
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--border);
+}
+.venda-row:hover td { background: var(--border); cursor: pointer; }
+
+/* ═══════════════════════════════════════════════
+   DETALHES DA VENDA
+════════════════════════════════════════════════ */
+.detalhe-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.detalhe-item {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.detalhe-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text2);
+  margin-bottom: 4px;
+}
+.detalhe-val {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  font-weight: 700;
+}

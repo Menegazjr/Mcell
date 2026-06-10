@@ -70,6 +70,16 @@ const db = {
     if (error) throw error;
     return data;
   },
+  async updateVenda(id, payload) {
+    const { data, error } = await _supabase
+      .from('vendas')
+      .update(payload)
+      .eq('id', id)
+      .select('*, vendedoras(nome)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
   async deleteVenda(id) {
     const { error } = await _supabase.from('vendas').delete().eq('id', id);
     if (error) throw error;

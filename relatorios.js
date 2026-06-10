@@ -179,9 +179,7 @@ async function gerarRelatorio() {
           <div class="panel-title">📋 Detalhamento das Vendas</div>
           <span class="badge badge-blue">${vendas.length} registros</span>
         </div>
-        <div class="table-wrap">
-          ${renderTabelaVendas(vendas)}
-        </div>
+        ${renderTabelaVendas(vendas, { showEdit: false, maxHeight: '480px' })}
       </div>
     `;
 
@@ -189,13 +187,12 @@ async function gerarRelatorio() {
     document.getElementById('btn-pdf').addEventListener('click', () => exportarPDF(vendas, periodo, ranking, totalFat, totalApar, ticketMed));
     document.getElementById('btn-excel').addEventListener('click', () => exportarExcel(vendas, periodo));
 
-    // Re-attach delete if admin
-    document.querySelectorAll('.btn-del-venda').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Excluir esta venda?')) return;
-        await db.deleteVenda(btn.dataset.id);
-        toast('Venda excluída.');
-        gerarRelatorio();
+    // Clique na linha abre detalhes (sem editar em relatórios)
+    document.querySelectorAll('.venda-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        const venda = vendas.find(v => v.id === row.dataset.id);
+        if (venda && typeof abrirDetalhesVenda === 'function') abrirDetalhesVenda(venda);
       });
     });
 

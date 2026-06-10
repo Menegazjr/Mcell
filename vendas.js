@@ -288,6 +288,15 @@ async function renderVendas() {
       document.getElementById('v-vendedora').value = vendedorasOpts[0].id;
     }
 
+    // Clique na linha abre detalhes
+    document.querySelectorAll('.venda-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return; // ignora clique em botões
+        const venda = vendasFiltradas.find(v => v.id === row.dataset.id);
+        if (venda) abrirDetalhesVenda(venda);
+      });
+    });
+
     // Editar e excluir
     document.querySelectorAll('.btn-edit-venda').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -310,50 +319,52 @@ async function renderVendas() {
 }
 
 // ── TABELA ─────────────────────────────────────
-function renderTabelaVendas(vendas) {
+function renderTabelaVendas(vendas, { showEdit = true, maxHeight = '420px' } = {}) {
   if (!vendas.length) return `<div class="empty-state"><div class="icon">◫</div><p>Nenhuma venda no período.</p></div>`;
 
   const rows = vendas.map(v => {
-    const entradas       = getEntradas(v);
-    const totalEnt       = calcTotalEntradas(v);
-    const total          = calcTotal(v);
-    const entradaCell    = entradas.length === 0
+    const entradas  = getEntradas(v);
+    const totalEnt  = calcTotalEntradas(v);
+    const total     = calcTotal(v);
+    const entCell   = entradas.length === 0
       ? '<span style="color:var(--text3)">—</span>'
-      : entradas.length === 1
-        ? `<div style="font-size:0.82rem">${entradas[0].modelo}</div>`
-        : `<div style="font-size:0.82rem">${entradas.length} aparelhos</div>
-           <div style="font-size:0.72rem;color:var(--text2)">${entradas.map(e=>e.modelo).join(', ')}</div>`;
+      : `<div style="font-size:0.82rem">${entradas.length > 1 ? entradas.length + ' ap.' : entradas[0].modelo}</div>`;
+    const obs       = v.observacoes || '';
+    const obsBreve  = obs.length > 20 ? obs.slice(0, 20) + '…' : obs || '—';
 
     return `
-    <tr>
+    <tr class="venda-row" style="cursor:pointer" data-id="${v.id}">
       <td>${fmtDate(v.data_venda)}</td>
       <td>${v.vendedoras?.nome || '—'}</td>
       <td>${v.modelo_iphone || '—'}</td>
-      <td>${entradaCell}</td>
-      <td class="td-mono">${entradas.length > 0 ? `<span style="color:var(--text2)">${fmt(totalEnt)}</span>` : '<span style="color:var(--text3)">—</span>'}</td>
+      <td>${entCell}</td>
+      <td class="td-mono">${entradas.length > 0 ? fmt(totalEnt) : '—'}</td>
       <td class="td-mono">${fmt(v.valor)}</td>
       <td class="td-mono" style="color:var(--blue);font-weight:600">${fmt(total)}</td>
-      <td style="color:var(--text2);font-size:0.8rem">${v.observacoes || '—'}</td>
-      <td>
+      <td style="color:var(--text2);font-size:0.8rem" title="${obs}">${obsBreve}</td>
+      ${showEdit ? `<td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
           <button class="btn-ghost btn-sm btn-edit-venda" data-id="${v.id}">Editar</button>
           ${isAdmin() ? `<button class="btn-danger btn-sm btn-del-venda" data-id="${v.id}">Excluir</button>` : ''}
         </div>
-      </td>
+      </td>` : ''}
     </tr>`;
   }).join('');
 
   return `
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th><th>Usuário</th><th>Modelo</th>
-          <th>Entrada(s)</th><th>Vlr Entradas</th>
-          <th>Vlr Pago</th><th>Total</th><th>Obs.</th><th></th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    <div class="table-scroll-wrap" style="max-height:${maxHeight}">
+      <table>
+        <thead class="thead-sticky">
+          <tr>
+            <th>Data</th><th>Usuário</th><th>Modelo</th>
+            <th>Entrada(s)</th><th>Vlr Ent.</th>
+            <th>Vlr Pago</th><th>Total</th><th>Obs.</th>
+            ${showEdit ? '<th></th>' : ''}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
 // ── EDITAR VENDA ──────────────────────────────
@@ -493,7 +504,7 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
     const totEnt   = entradas.reduce((s,e)=>s+e.valor,0);
 
     try {
-      const { error } = await _supabase.from('vendas').update({
+      await db.updateVenda(v.id, {
         vendedora_id:     isAdmin() ? document.getElementById('ev-vendedora').value : v.vendedora_id,
         data_venda:       document.getElementById('ev-data').value,
         modelo_iphone:    document.getElementById('ev-modelo').value,
@@ -503,15 +514,75 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
         aparelho_entrada: entradas.length===1 ? entradas[0].modelo : entradas.length>1 ? `${entradas.length} aparelhos` : null,
         valor_entrada:    totEnt||0,
         entradas:         entradas
-      }).eq('id', v.id);
-      if (error) throw error;
+      });
       toast('Venda atualizada!');
       closeModal();
-      renderVendas();
+      await renderVendas();
     } catch (err) {
       errEl.textContent = 'Erro: ' + err.message;
       errEl.classList.remove('hidden');
       btn.textContent = 'Salvar Alterações'; btn.disabled = false;
     }
   });
+}
+
+// ── DETALHES DA VENDA ─────────────────────────
+function abrirDetalhesVenda(v) {
+  const entradas = getEntradas(v);
+  const totalEnt = calcTotalEntradas(v);
+  const total    = calcTotal(v);
+
+  const entradasHtml = entradas.length === 0
+    ? '<div style="color:var(--text2);font-size:0.85rem">Nenhum aparelho de entrada</div>'
+    : entradas.map(e => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:0.87rem">${e.modelo}</span>
+          <span style="font-family:var(--font-head);font-weight:700;color:var(--text2)">${fmt(e.valor)}</span>
+        </div>`).join('');
+
+  openModal(`
+    <div class="modal-title">📋 Detalhes da Venda</div>
+    <div class="modal-subtitle">${fmtDate(v.data_venda)} — ${v.vendedoras?.nome || '—'}</div>
+
+    <div class="detalhe-grid">
+      <div class="detalhe-item">
+        <div class="detalhe-label">Modelo Vendido</div>
+        <div class="detalhe-val">${v.modelo_iphone || '—'}</div>
+      </div>
+      <div class="detalhe-item">
+        <div class="detalhe-label">Quantidade</div>
+        <div class="detalhe-val">${v.quantidade || 1}</div>
+      </div>
+      <div class="detalhe-item">
+        <div class="detalhe-label">Valor Pago</div>
+        <div class="detalhe-val">${fmt(v.valor)}</div>
+      </div>
+      <div class="detalhe-item">
+        <div class="detalhe-label">Total Entradas</div>
+        <div class="detalhe-val">${entradas.length > 0 ? fmt(totalEnt) : '—'}</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg3);border:1px solid var(--blue);border-radius:var(--radius);padding:12px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600">Total da Venda</span>
+      <span style="font-family:var(--font-head);font-size:1.3rem;font-weight:800;color:var(--blue)">${fmt(total)}</span>
+    </div>
+
+    ${entradas.length > 0 ? `
+    <div style="margin-bottom:12px">
+      <div class="detalhe-label" style="margin-bottom:8px">Aparelhos de Entrada</div>
+      ${entradasHtml}
+      ${entradas.length > 1 ? `<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:600"><span>Total</span><span>${fmt(totalEnt)}</span></div>` : ''}
+    </div>` : ''}
+
+    ${v.observacoes ? `
+    <div>
+      <div class="detalhe-label" style="margin-bottom:4px">Observações</div>
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;font-size:0.87rem;color:var(--text2)">${v.observacoes}</div>
+    </div>` : ''}
+
+    <div class="form-actions" style="margin-top:16px">
+      <button type="button" class="btn-ghost" onclick="closeModal()">Fechar</button>
+    </div>
+  `);
 }

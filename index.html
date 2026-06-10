@@ -223,6 +223,23 @@
   ↺ Recarregar
 </button>
 
+<!-- Banner de nova versão -->
+<div id="update-banner" class="update-banner hidden">
+  <div class="update-banner-content">
+    <div class="update-info">
+      <span class="update-dot"></span>
+      <div>
+        <div class="update-title">Nova versão disponível</div>
+        <div class="update-sub">Atualize para ter as últimas melhorias</div>
+      </div>
+    </div>
+    <button class="update-btn" id="btn-update">Atualizar agora</button>
+  </div>
+  <div class="update-progress hidden" id="update-progress">
+    <div class="update-progress-bar" id="update-progress-bar"></div>
+  </div>
+</div>
+
 <!-- Banner offline -->
 <div id="offline-banner" class="offline-banner hidden">
   📡 Sem conexão — algumas funções estão indisponíveis
@@ -249,16 +266,22 @@
         // Verifica atualização a cada 60 segundos
         setInterval(() => reg.update(), 60000);
 
-        // Quando novo SW estiver esperando, ativa imediatamente
+        // Quando novo SW estiver esperando, mostra banner imediatamente
         reg.addEventListener('updatefound', () => {
           const novo = reg.installing;
           novo.addEventListener('statechange', () => {
             if (novo.state === 'installed' && navigator.serviceWorker.controller) {
-              // Há nova versão — recarrega automaticamente
-              novo.postMessage('skipWaiting');
+              window._pendingSW = novo;
+              document.getElementById('update-banner')?.classList.remove('hidden');
             }
           });
         });
+
+        // Verifica na abertura se há SW esperando
+        if (reg.waiting) {
+          window._pendingSW = reg.waiting;
+          document.getElementById('update-banner')?.classList.remove('hidden');
+        }
       }).catch(e => console.warn('SW falhou:', e));
 
       // Quando SW assumir controle, recarrega a página
