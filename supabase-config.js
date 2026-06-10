@@ -71,20 +71,12 @@ const db = {
     return data;
   },
   async updateVenda(id, payload) {
-    // Update separado do select para evitar erro de RLS com .single()
     const { error } = await _supabase
       .from('vendas')
       .update(payload)
       .eq('id', id);
     if (error) throw error;
-    // Busca o registro atualizado separadamente
-    const { data, error: err2 } = await _supabase
-      .from('vendas')
-      .select('*, vendedoras(nome)')
-      .eq('id', id)
-      .maybeSingle();
-    if (err2) throw err2;
-    return data;
+    return true;
   },
   async deleteVenda(id) {
     const { error } = await _supabase.from('vendas').delete().eq('id', id);

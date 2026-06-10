@@ -530,7 +530,8 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
       await db.updateVenda(v.id, payload);
       toast('Venda atualizada!');
       closeModal();
-      await renderVendas();
+      // Pequeno delay para garantir que o Supabase processou antes de recarregar
+      setTimeout(() => renderVendas(), 400);
     } catch (err) {
       errEl.textContent = 'Erro: ' + err.message;
       errEl.classList.remove('hidden');
