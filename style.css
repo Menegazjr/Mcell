@@ -1645,3 +1645,32 @@ tbody tr:hover td { background: var(--border); }
   font-size: 1rem;
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════
+   ENTRADA MULTI (modelo + arm + valor + remover)
+════════════════════════════════════════════════ */
+.entrada-linha-multi {
+  display: grid;
+  grid-template-columns: 1fr 90px 120px 36px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+@media (max-width: 600px) {
+  .entrada-linha-multi {
+    grid-template-columns: 1fr 80px 100px 32px;
+    gap: 6px;
+  }
+}
+@media (max-width: 420px) {
+  .entrada-linha-multi {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .entrada-linha-multi .entrada-rem-btn,
+  .entrada-linha-multi .ev-rem-btn {
+    grid-column: 2;
+    justify-self: end;
+    width: 32px;
+  }
+}

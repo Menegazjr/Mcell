@@ -4,7 +4,7 @@
 
 const MODELOS_IPHONE = [
   'iPhone 17 Pro Max','iPhone 17 Pro','iPhone 17 Plus','iPhone 17',
-  'iPhone 16 Pro Max','iPhone 16 Pro','iPhone 16 Plus','iPhone 16',
+  'iPhone 16 Pro Max','iPhone 16 Pro','iPhone 16 Plus','iPhone 16','iPhone 16e',
   'iPhone 15 Pro Max','iPhone 15 Pro','iPhone 15 Plus','iPhone 15',
   'iPhone 14 Pro Max','iPhone 14 Pro','iPhone 14 Plus','iPhone 14',
   'iPhone 13 Pro Max','iPhone 13 Pro','iPhone 13','iPhone 13 Mini',
@@ -12,11 +12,15 @@ const MODELOS_IPHONE = [
   'iPhone SE (3ª Geração)','iPhone SE (2ª Geração)',
   'iPhone 11 Pro Max','iPhone 11 Pro','iPhone 11',
   'Outro'
+];
+
+const ARMAZENAMENTOS = [
+  '64GB','128GB','256GB','512GB','1TB'
 ];
 
 const MODELOS_ENTRADA = [
   'iPhone 17 Pro Max','iPhone 17 Pro','iPhone 17 Plus','iPhone 17',
-  'iPhone 16 Pro Max','iPhone 16 Pro','iPhone 16 Plus','iPhone 16',
+  'iPhone 16 Pro Max','iPhone 16 Pro','iPhone 16 Plus','iPhone 16','iPhone 16e',
   'iPhone 15 Pro Max','iPhone 15 Pro','iPhone 15 Plus','iPhone 15',
   'iPhone 14 Pro Max','iPhone 14 Pro','iPhone 14 Plus','iPhone 14',
   'iPhone 13 Pro Max','iPhone 13 Pro','iPhone 13','iPhone 13 Mini',
@@ -26,7 +30,16 @@ const MODELOS_ENTRADA = [
   'Outro'
 ];
 
+
+// Concatena modelo + armazenamento
+function concatModelo(modelo, armazenamento) {
+  if (!modelo) return '';
+  if (!armazenamento || modelo === 'Outro') return modelo;
+  return `${modelo} ${armazenamento}`;
+}
+
 const modelSelectOptions = MODELOS_IPHONE.map(m => `<option value="${m}">${m}</option>`).join('');
+const armOptions = ARMAZENAMENTOS.map(a => `<option value="${a}">${a}</option>`).join('');
 const entradaSelectOptions = MODELOS_ENTRADA.map(m => `<option value="${m}">${m}</option>`).join('');
 
 // Retorna array de entradas normalizado
@@ -64,10 +77,14 @@ function renderLinhasEntrada() {
   }
 
   container.innerHTML = _entradas.map((e, i) => `
-    <div class="entrada-linha" data-i="${i}">
+    <div class="entrada-linha-multi" data-i="${i}">
       <select class="entrada-modelo-sel" data-i="${i}">
         <option value="">Modelo…</option>
         ${MODELOS_ENTRADA.map(m => `<option value="${m}" ${e.modelo===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select class="entrada-arm-sel" data-i="${i}">
+        <option value="">GB…</option>
+        ${ARMAZENAMENTOS.map(a => `<option value="${a}" ${e.armazenamento===a?'selected':''}>${a}</option>`).join('')}
       </select>
       <input type="number" class="entrada-valor-inp" data-i="${i}"
         value="${e.valor||''}" step="0.01" min="0" placeholder="R$ valor"/>
@@ -79,6 +96,12 @@ function renderLinhasEntrada() {
   container.querySelectorAll('.entrada-modelo-sel').forEach(sel => {
     sel.addEventListener('change', () => {
       _entradas[parseInt(sel.dataset.i)].modelo = sel.value;
+      atualizarResumoEntrada();
+    });
+  });
+  container.querySelectorAll('.entrada-arm-sel').forEach(sel => {
+    sel.addEventListener('change', () => {
+      _entradas[parseInt(sel.dataset.i)].armazenamento = sel.value;
       atualizarResumoEntrada();
     });
   });
@@ -166,6 +189,12 @@ async function renderVendas() {
               </select>
             </div>
             <div class="form-group">
+              <label>Armazenamento *</label>
+              <select id="v-arm" required>
+                <option value="">Selecionar…</option>${armOptions}
+              </select>
+            </div>
+            <div class="form-group">
               <label>Valor Pago pelo Cliente (R$) *</label>
               <input type="number" id="v-valor" step="0.01" min="0" placeholder="0,00" required/>
             </div>
@@ -224,14 +253,14 @@ async function renderVendas() {
       document.getElementById('entrada-fields').classList.toggle('hidden', !e.target.checked);
       if (!e.target.checked) { _entradas = []; renderLinhasEntrada(); }
       else if (_entradas.length === 0) {
-        _entradas.push({ modelo: '', valor: 0 });
+        _entradas.push({ modelo: '', armazenamento: '', valor: 0 });
         renderLinhasEntrada();
       }
     });
 
     // Adicionar linha de entrada
     document.getElementById('btn-add-entrada').addEventListener('click', () => {
-      _entradas.push({ modelo: '', valor: 0 });
+      _entradas.push({ modelo: '', armazenamento: '', valor: 0 });
       renderLinhasEntrada();
     });
 
@@ -256,16 +285,25 @@ async function renderVendas() {
           toast('Preencha o modelo e valor de todos os aparelhos de entrada.', 'error');
           btn.textContent = 'Registrar Venda'; btn.disabled = false; return;
         }
+        // Concatenar modelo + armazenamento nas entradas
+        _entradas = _entradas.map(e => ({
+          ...e,
+          modelo: concatModelo(e.modelo, e.armazenamento)
+        }));
       }
 
       const entradas = temEntrada ? _entradas : [];
       const totalEntradas = entradas.reduce((s,e) => s + e.valor, 0);
 
       try {
+        const modeloFinal = concatModelo(
+          document.getElementById('v-modelo').value,
+          document.getElementById('v-arm').value
+        );
         await db.insertVenda({
           vendedora_id:     document.getElementById('v-vendedora').value,
           data_venda:       document.getElementById('v-data').value,
-          modelo_iphone:    document.getElementById('v-modelo').value,
+          modelo_iphone:    modeloFinal,
           valor:            parseFloat(document.getElementById('v-valor').value),
           quantidade:       parseInt(document.getElementById('v-qtd').value) || 1,
           observacoes:      document.getElementById('v-obs').value || null,
@@ -374,8 +412,21 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
 
   const vendOpts = vendedorasOpts.map(vd =>
     `<option value="${vd.id}" ${v.vendedora_id===vd.id?'selected':''}>${vd.nome}</option>`).join('');
+
+  // Separar modelo e armazenamento do valor salvo
+  let _modeloBase = v.modelo_iphone || '';
+  let _armBase = '';
+  ARMAZENAMENTOS.forEach(a => {
+    if (_modeloBase.endsWith(' ' + a)) {
+      _armBase    = a;
+      _modeloBase = _modeloBase.slice(0, -a.length - 1);
+    }
+  });
+
   const modelOptions = MODELOS_IPHONE.map(m =>
-    `<option value="${m}" ${v.modelo_iphone===m?'selected':''}>${m}</option>`).join('');
+    `<option value="${m}" ${_modeloBase===m?'selected':''}>${m}</option>`).join('');
+  const armOptionsEdit = ARMAZENAMENTOS.map(a =>
+    `<option value="${a}" ${_armBase===a?'selected':''}>${a}</option>`).join('');
   const temEntr = _editEntradas.length > 0;
 
   openModal(`
@@ -394,6 +445,12 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
         <div class="form-group">
           <label>Modelo *</label>
           <select id="ev-modelo" required>${modelOptions}</select>
+        </div>
+        <div class="form-group">
+          <label>Armazenamento *</label>
+          <select id="ev-arm" required>
+            <option value="">Selecionar…</option>${armOptionsEdit}
+          </select>
         </div>
         <div class="form-group">
           <label>Valor Pago (R$) *</label>
@@ -439,19 +496,38 @@ function abrirFormEditarVenda(v, vendedorasOpts) {
   function renderEditEntradas() {
     const cont = document.getElementById('ev-lista-entradas');
     if (!cont) return;
-    cont.innerHTML = _editEntradas.map((e, i) => `
-      <div class="entrada-linha" data-i="${i}">
+    // Separar modelo/arm para edição das entradas
+  cont.innerHTML = _editEntradas.map((e, i) => {
+    let mBase = e.modelo || '';
+    let aBase = '';
+    ARMAZENAMENTOS.forEach(a => { if (mBase.endsWith(' '+a)) { aBase=a; mBase=mBase.slice(0,-a.length-1); } });
+    return `
+      <div class="entrada-linha-multi" data-i="${i}">
         <select class="ev-modelo-sel" data-i="${i}">
           <option value="">Modelo…</option>
-          ${MODELOS_ENTRADA.map(m => `<option value="${m}" ${e.modelo===m?'selected':''}>${m}</option>`).join('')}
+          ${MODELOS_ENTRADA.map(m => `<option value="${m}" ${mBase===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+        <select class="ev-arm-sel" data-i="${i}">
+          <option value="">GB…</option>
+          ${ARMAZENAMENTOS.map(a => `<option value="${a}" ${aBase===a?'selected':''}>${a}</option>`).join('')}
         </select>
         <input type="number" class="ev-valor-inp" data-i="${i}"
           value="${e.valor||''}" step="0.01" min="0" placeholder="R$ valor"/>
         <button type="button" class="btn-danger btn-sm ev-rem-btn" data-i="${i}">✕</button>
-      </div>`).join('');
+      </div>`;
+  }).join('');
 
     cont.querySelectorAll('.ev-modelo-sel').forEach(sel => sel.addEventListener('change', () => {
-      _editEntradas[parseInt(sel.dataset.i)].modelo = sel.value; updateEditResumo();
+      const i = parseInt(sel.dataset.i);
+      const arm = cont.querySelectorAll('.ev-arm-sel')[i]?.value || '';
+      _editEntradas[i].modelo = concatModelo(sel.value, arm);
+      updateEditResumo();
+    }));
+  cont.querySelectorAll('.ev-arm-sel').forEach(sel => sel.addEventListener('change', () => {
+      const i = parseInt(sel.dataset.i);
+      const mod = cont.querySelectorAll('.ev-modelo-sel')[i]?.value || '';
+      _editEntradas[i].modelo = concatModelo(mod, sel.value);
+      updateEditResumo();
     }));
     cont.querySelectorAll('.ev-valor-inp').forEach(inp => inp.addEventListener('input', () => {
       _editEntradas[parseInt(inp.dataset.i)].valor = parseFloat(inp.value)||0; updateEditResumo();
