@@ -58,31 +58,41 @@ async function renderMetas() {
                   <tr>
                     <td><strong>${d.nome}</strong></td>
                     <td>
-                      <span style="font-family:var(--font-head);font-size:1rem;font-weight:700">
-                        ${fmtNum(d.meta)}
-                      </span>
-                      <span style="color:var(--text2);font-size:0.78rem"> un.</span>
+                      ${d.isExtra ? `
+                        <span style="color:var(--text3);font-size:0.85rem">— sem meta —</span>
+                      ` : `
+                        <span style="font-family:var(--font-head);font-size:1rem;font-weight:700">
+                          ${fmtNum(d.meta)}
+                        </span>
+                        <span style="color:var(--text2);font-size:0.78rem"> un.</span>
+                      `}
                     </td>
                     <td>
-                      ${d.isManual
-                        ? '<span class="badge badge-yellow">Manual</span>'
-                        : '<span class="badge badge-blue">Automático</span>'}
+                      ${d.isExtra
+                        ? '<span class="badge badge-yellow">⭐ Extra</span>'
+                        : d.isManual
+                          ? '<span class="badge badge-yellow">Manual</span>'
+                          : '<span class="badge badge-blue">Automático</span>'}
                     </td>
                     <td>
-                      <div style="display:flex;gap:6px">
-                        <button class="btn-ghost btn-sm btn-meta-manual"
-                          data-id="${d.vendedora_id}"
-                          data-nome="${d.nome}"
-                          data-meta="${d.meta}"
-                          data-manual="${d.isManual}">
-                          ${d.isManual ? 'Editar' : 'Definir manual'}
-                        </button>
-                        ${d.isManual ? `
-                          <button class="btn-danger btn-sm btn-meta-reset"
-                            data-id="${d.vendedora_id}">
-                            Resetar
-                          </button>` : ''}
-                      </div>
+                      ${d.isExtra ? `
+                        <span style="color:var(--text3);font-size:0.8rem">Não participa da meta</span>
+                      ` : `
+                        <div style="display:flex;gap:6px">
+                          <button class="btn-ghost btn-sm btn-meta-manual"
+                            data-id="${d.vendedora_id}"
+                            data-nome="${d.nome}"
+                            data-meta="${d.meta}"
+                            data-manual="${d.isManual}">
+                            ${d.isManual ? 'Editar' : 'Definir manual'}
+                          </button>
+                          ${d.isManual ? `
+                            <button class="btn-danger btn-sm btn-meta-reset"
+                              data-id="${d.vendedora_id}">
+                              Resetar
+                            </button>` : ''}
+                        </div>
+                      `}
                     </td>
                   </tr>`).join('')}
               </tbody>
@@ -150,23 +160,39 @@ async function renderMetas() {
 
 // ── CÁLCULO DE DISTRIBUIÇÃO ────────────────────
 function calcDistribuicao(metaTotal, vendedoras, metasInd) {
-  // Considera apenas metas manuais de vendedores que estão na lista ativa atual
-  const idsAtivos  = new Set(vendedoras.map(v => v.id));
+  // Vendedores "extra" não entram no cálculo da meta de forma alguma
+  const vendedoresMeta = vendedores.filter(v => !v.is_extra);
+  const vendedoresExtra = vendedores.filter(v => v.is_extra);
+
+  // Considera apenas metas manuais de vendedores que estão na lista ativa (não extra)
+  const idsAtivos  = new Set(vendedoresMeta.map(v => v.id));
   const manuais    = metasInd.filter(m => m.is_manual && idsAtivos.has(m.vendedora_id));
 
   const totalManual = manuais.reduce((s, m) => s + parseFloat(m.meta_aparelhos), 0);
-  const numAuto      = Math.max(0, vendedoras.length - manuais.length);
+  const numAuto      = Math.max(0, vendedoresMeta.length - manuais.length);
   const restante     = Math.max(0, metaTotal - totalManual);
   const metaAuto     = numAuto > 0 ? restante / numAuto : 0;
 
-  const lista = vendedoras.map(v => {
+  const lista = vendedoresMeta.map(v => {
     const ind = manuais.find(m => m.vendedora_id === v.id);
     return {
       vendedora_id: v.id,
       nome:         v.nome,
       meta:         ind ? parseFloat(ind.meta_aparelhos) : metaAuto,
-      isManual:     !!ind
+      isManual:     !!ind,
+      isExtra:      false
     };
+  });
+
+  // Vendedores extra entram na lista mas sem meta nenhuma (null = sem meta aplicável)
+  vendedoresExtra.forEach(v => {
+    lista.push({
+      vendedora_id: v.id,
+      nome:         v.nome,
+      meta:         null,
+      isManual:     false,
+      isExtra:      true
+    });
   });
 
   return { lista, totalManual, numAuto, metaAuto: parseFloat(metaAuto.toFixed(2)) };
@@ -291,8 +317,8 @@ function abrirFormMetaManual(vendedoraId, nome, metaAtual, isManual) {
     const errEl = document.getElementById('fmm-error');
     const val  = parseFloat(document.getElementById('fmm-meta').value);
 
-    if (!val || val <= 0) {
-      errEl.textContent = 'Informe um valor maior que zero.';
+    if (isNaN(val) || val < 0) {
+      errEl.textContent = 'Informe um valor válido (0 ou maior).';
       errEl.classList.remove('hidden'); return;
     }
 

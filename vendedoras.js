@@ -176,7 +176,10 @@ function renderTabelaVendedoras(vendedoras, comAcesso) {
     const temAcesso = comAcesso.has(v.id);
     return `
     <tr>
-      <td><strong>${v.nome}</strong></td>
+      <td>
+        <strong>${v.nome}</strong>
+        ${v.is_extra ? '<span class="badge badge-yellow" style="margin-left:6px;font-size:0.68rem">⭐ Extra</span>' : ''}
+      </td>
       <td>${v.telefone || '—'}</td>
       <td>${fmtDate(v.data_admissao)}</td>
       <td><span class="badge ${v.status==='ativa'?'badge-green':'badge-red'}">
@@ -370,6 +373,18 @@ function abrirFormVendedora(v) {
           </select>
         </div>
       </div>
+
+      <div class="entrada-toggle">
+        <label class="entrada-check-label">
+          <input type="checkbox" id="fv-extra" ${v?.is_extra?'checked':''}/>
+          <span>Vendedor Extra (não entra no cálculo da meta)</span>
+        </label>
+        <p style="color:var(--text2);font-size:0.78rem;margin-top:8px">
+          Marque se este vendedor não deve participar da divisão automática da meta mensal.
+          Suas vendas continuam sendo registradas e contabilizadas no faturamento total normalmente.
+        </p>
+      </div>
+
       <div class="form-actions">
         <button type="button" class="btn-ghost" id="btn-cancel-vend">Cancelar</button>
         <button type="submit" class="btn-primary">${isEdit?'Salvar':'Cadastrar'}</button>
@@ -390,7 +405,8 @@ function abrirFormVendedora(v) {
         nome:          document.getElementById('fv-nome').value.trim(),
         telefone:      document.getElementById('fv-tel').value.trim() || null,
         data_admissao: document.getElementById('fv-admissao').value || null,
-        status:        document.getElementById('fv-status').value
+        status:        document.getElementById('fv-status').value,
+        is_extra:      document.getElementById('fv-extra').checked
       });
       toast(`Vendedor ${isEdit?'atualizado':'cadastrado'} com sucesso!`);
       closeModal();

@@ -52,14 +52,15 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
     const distrib    = typeof calcDistribuicao === 'function'
       ? calcDistribuicao(metaApar, ativas, metasInd)
       : { lista: [], metaAuto: metaApar / (ativas.length || 1) };
-    const metaInd    = distrib.lista.find(d => d.vendedora_id === vendedoraId);
-    const metaIndApar = metaInd?.meta ?? distrib.metaAuto;
+    const metaInd     = distrib.lista.find(d => d.vendedora_id === vendedoraId);
+    const isExtra     = metaInd?.isExtra || false;
+    const metaIndApar = isExtra ? null : (metaInd?.meta ?? distrib.metaAuto);
 
     // Totais
     const totalFat  = vendas.reduce((s, v) => s + parseFloat(v.valor||0) * (v.quantidade||1), 0);
     const totalApar = vendas.reduce((s, v) => s + (v.quantidade||1), 0);
-    const faltaApar = Math.max(0, Math.ceil(metaIndApar - totalApar));
-    const p1        = pct(totalApar, metaIndApar);
+    const faltaApar = isExtra ? 0 : Math.max(0, Math.ceil(metaIndApar - totalApar));
+    const p1        = isExtra ? 0 : pct(totalApar, metaIndApar);
     const ticketMed = totalApar > 0 ? totalFat / totalApar : 0;
 
     // Evolução diária
@@ -95,17 +96,24 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
           <div class="desemp-name">${nomeVend}</div>
           <div class="desemp-period">${mesToNomeCompleto(currentMes)} ${currentAno}</div>
         </div>
-        <div class="desemp-badge ${p1>=100?'badge-green':p1>=70?'badge-blue':'badge-yellow'}">
-          ${p1>=100?'🏆 Meta batida!':p1>=70?'🚀 No caminho!':'⚡ Acelera!'}
+        <div class="desemp-badge ${isExtra ? 'badge-yellow' : p1>=100?'badge-green':p1>=70?'badge-blue':'badge-yellow'}">
+          ${isExtra ? '⭐ Extra — sem meta' : p1>=100?'🏆 Meta batida!':p1>=70?'🚀 No caminho!':'⚡ Acelera!'}
         </div>
       </div>
 
       <div class="cards-grid" style="margin-bottom:24px">
-        ${cardDesemp('Aparelhos Vendidos', fmtNum(totalApar), `Meta: ${Math.ceil(metaIndApar)} un.`, p1, 'green')}
-        ${cardDesemp('Meta Individual', Math.ceil(metaIndApar) + ' un.', `${p1}% atingido`, null, 'blue')}
-        ${cardDesemp('Faltam', faltaApar>0 ? faltaApar+' un.' : '✓ Bateu!', 'Para a meta', null, faltaApar>0?'yellow':'green')}
+        ${isExtra ? `
+          ${cardDesemp('Aparelhos Vendidos', fmtNum(totalApar), 'Sem meta atribuída', null, 'blue')}
+          ${cardDesemp('Faturado', fmt(totalFat), `${totalApar} vendas no mês`, null, 'green')}
+          ${cardDesemp('Ticket Médio', fmt(ticketMed), 'Não entra no cálculo da meta', null, 'yellow')}
+        ` : `
+          ${cardDesemp('Aparelhos Vendidos', fmtNum(totalApar), `Meta: ${Math.ceil(metaIndApar)} un.`, p1, 'green')}
+          ${cardDesemp('Meta Individual', Math.ceil(metaIndApar) + ' un.', `${p1}% atingido`, null, 'blue')}
+          ${cardDesemp('Faltam', faltaApar>0 ? faltaApar+' un.' : '✓ Bateu!', 'Para a meta', null, faltaApar>0?'yellow':'green')}
+        `}
       </div>
 
+      ${!isExtra ? `
       <div class="panel" style="margin-bottom:24px">
         <div class="panel-title" style="margin-bottom:20px">📊 Progresso da Meta</div>
         <div class="meta-track-row">
@@ -119,7 +127,19 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
             </div>
           </div>
         </div>
-      </div>
+      </div>` : `
+      <div class="panel" style="margin-bottom:24px;border-color:var(--yellow)50">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:1.5rem">⭐</span>
+          <div>
+            <div style="font-weight:700;margin-bottom:2px">Vendedor Extra</div>
+            <div style="font-size:0.85rem;color:var(--text2)">
+              Este vendedor não participa do cálculo de metas mensais.
+              As vendas continuam sendo registradas e contabilizadas no faturamento total da loja.
+            </div>
+          </div>
+        </div>
+      </div>`}
 
       <div class="charts-grid" style="margin-bottom:24px">
         <div class="chart-panel">
@@ -132,7 +152,7 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
         </div>
       </div>
 
-      ${renderMotivacao(p1, faltaApar)}
+      ${!isExtra ? renderMotivacao(p1, faltaApar) : ''}
     `;
 
     // Seletor listener
@@ -160,13 +180,13 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
               fill: true, tension: 0.4,
               pointBackgroundColor: '#FC4C04', pointRadius: 4
             },
-            {
+            ...(isExtra ? [] : [{
               label: 'Meta',
               data: dias.map(() => metaIndApar),
               borderColor: '#22c55e60',
               borderDash: [6,4], borderWidth: 2,
               pointRadius: 0, fill: false
-            }
+            }])
           ]
         },
         options: {

@@ -198,8 +198,31 @@ function renderVendedoraCards(ativas, byVend, metaIndApar, distrib) {
   if (!ativas.length) return '';
   const cards = ativas.map(v => {
     const d = byVend[v.nome] || { fat: 0, apar: 0 };
-    // Usa meta individual real se disponível
-    const metaInd = distrib?.lista?.find(x => x.vendedora_id === v.id)?.meta || metaIndApar;
+    const info = distrib?.lista?.find(x => x.vendedora_id === v.id);
+    const isExtra = info?.isExtra || false;
+
+    if (isExtra) {
+      return `
+        <div class="vendor-card" style="border-color:var(--yellow)40">
+          <div class="vendor-card-header">
+            <div class="vendor-name">${v.nome}</div>
+            <span class="badge badge-yellow">⭐ Extra</span>
+          </div>
+          <div class="vendor-stats">
+            <div class="vstat">
+              <div class="vstat-label">Aparelhos</div>
+              <div class="vstat-val">${fmtNum(d.apar)}</div>
+            </div>
+            <div class="vstat">
+              <div class="vstat-label">Faturado</div>
+              <div class="vstat-val">${fmt(d.fat)}</div>
+            </div>
+          </div>
+          <div class="pct-label">Não participa do cálculo de metas</div>
+        </div>`;
+    }
+
+    const metaInd = info?.meta ?? metaIndApar;
     const p = pct(d.apar, metaInd);
     const faltaAp = Math.max(0, Math.ceil(metaInd - d.apar));
     return `
@@ -227,7 +250,7 @@ function renderVendedoraCards(ativas, byVend, metaIndApar, distrib) {
         <div class="progress-track">
           <div class="progress-fill" style="width:${p}%;background:${progressColor(p)}"></div>
         </div>
-        <div class="pct-label">${p}% da meta · Faltam ${faltaAp} aparelhos${distrib?.lista?.find(x=>x.vendedora_id===v.id)?.isManual?' · <span class="badge badge-yellow" style="font-size:0.68rem">Manual</span>':''}</div>
+        <div class="pct-label">${p}% da meta · Faltam ${faltaAp} aparelhos${info?.isManual?' · <span class="badge badge-yellow" style="font-size:0.68rem">Manual</span>':''}</div>
       </div>`;
   });
 
