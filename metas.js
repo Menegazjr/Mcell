@@ -160,9 +160,14 @@ async function renderMetas() {
 
 // ── CÁLCULO DE DISTRIBUIÇÃO ────────────────────
 function calcDistribuicao(metaTotal, vendedoras, metasInd) {
+  // Proteção contra dados inválidos
+  vendedoras = Array.isArray(vendedoras) ? vendedoras : [];
+  metasInd   = Array.isArray(metasInd) ? metasInd : [];
+  metaTotal  = parseFloat(metaTotal) || 0;
+
   // Vendedores "extra" não entram no cálculo da meta de forma alguma
-  const vendedoresMeta = vendedores.filter(v => !v.is_extra);
-  const vendedoresExtra = vendedores.filter(v => v.is_extra);
+  const vendedoresMeta  = vendedoras.filter(v => !v.is_extra);
+  const vendedoresExtra = vendedoras.filter(v => v.is_extra);
 
   // Considera apenas metas manuais de vendedores que estão na lista ativa (não extra)
   const idsAtivos  = new Set(vendedoresMeta.map(v => v.id));
