@@ -47,7 +47,7 @@ async function renderVendedoras() {
       <!-- ABAS -->
       <div class="tabs">
         <button class="tab-btn ${vendedorasTab==='vendedoras'?'active':''}" data-tab="vendedoras">
-          👤 Vendedoras <span class="tab-count">${vendedoras.length}</span>
+          👤 Vendedores <span class="tab-count">${vendedoras.length}</span>
         </button>
         <button class="tab-btn ${vendedorasTab==='admins'?'active':''}" data-tab="admins">
           🛡 Administradores <span class="tab-count">${admins.length}</span>
@@ -58,8 +58,8 @@ async function renderVendedoras() {
       <div id="tab-vendedoras" class="tab-panel ${vendedorasTab==='vendedoras'?'active':''}">
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">👤 Vendedoras <span>${vendedoras.length} cadastradas</span></div>
-            <button class="btn-primary btn-sm" id="btn-nova-vendedora">+ Nova Vendedora</button>
+            <div class="panel-title">👤 Vendedores <span>${vendedoras.length} cadastradas</span></div>
+            <button class="btn-primary btn-sm" id="btn-nova-vendedora">+ Novo Vendedor</button>
           </div>
           <div class="table-wrap">
             ${renderTabelaVendedoras(vendedoras, comAcesso)}
@@ -107,17 +107,17 @@ async function renderVendedoras() {
         const v = vendedoras.find(x => x.id === btn.dataset.id);
         const novoStatus = v.status === 'ativa' ? 'inativa' : 'ativa';
         await db.upsertVendedora({ ...v, status: novoStatus });
-        toast(`Vendedora ${novoStatus === 'ativa' ? 'ativada' : 'desativada'}.`);
+        toast(`Vendedor ${novoStatus === 'ativa' ? 'ativado' : 'desativado'}.`);
         renderVendedoras();
       });
     });
 
     document.querySelectorAll('.btn-del-vend').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Excluir esta vendedora? As vendas associadas serão mantidas.')) return;
+        if (!confirm('Excluir este vendedor? As vendas associadas serão mantidas.')) return;
         try {
           await db.deleteVendedora(btn.dataset.id);
-          toast('Vendedora excluída.');
+          toast('Vendedor excluído.');
           renderVendedoras();
         } catch (err) {
           toast('Erro ao excluir: ' + err.message, 'error');
@@ -169,7 +169,7 @@ function renderTabelaVendedoras(vendedoras, comAcesso) {
   if (!vendedoras.length) return `
     <div class="empty-state">
       <div class="icon">◉</div>
-      <p>Nenhuma vendedora cadastrada ainda.</p>
+      <p>Nenhum vendedor cadastrado ainda.</p>
     </div>`;
 
   const rows = vendedoras.map(v => {
@@ -346,8 +346,8 @@ function abrirFormAdmin() {
 function abrirFormVendedora(v) {
   const isEdit = !!v;
   openModal(`
-    <div class="modal-title">${isEdit ? 'Editar' : 'Nova'} Vendedora</div>
-    <div class="modal-subtitle">${isEdit ? 'Altere os dados abaixo.' : 'Preencha os dados da nova vendedora.'}</div>
+    <div class="modal-title">${isEdit ? 'Editar' : 'Novo'} Vendedor</div>
+    <div class="modal-subtitle">${isEdit ? 'Altere os dados abaixo.' : 'Preencha os dados do novo vendedor.'}</div>
     <form id="form-vendedora">
       <div class="form-grid">
         <div class="form-group form-full">
@@ -392,7 +392,7 @@ function abrirFormVendedora(v) {
         data_admissao: document.getElementById('fv-admissao').value || null,
         status:        document.getElementById('fv-status').value
       });
-      toast(`Vendedora ${isEdit?'atualizada':'cadastrada'} com sucesso!`);
+      toast(`Vendedor ${isEdit?'atualizado':'cadastrado'} com sucesso!`);
       closeModal();
       renderVendedoras();
     } catch (err) {
@@ -410,7 +410,7 @@ function abrirFormAcesso(v) {
     <div class="modal-subtitle">Login para <strong>${v.nome}</strong> no sistema.</div>
     <div class="acesso-info">
       <span class="badge badge-blue">◉ ${v.nome}</span>
-      <p>A vendedora poderá fazer login e acessar apenas seus próprios dados.</p>
+      <p>O vendedor poderá fazer login e acessar apenas seus próprios dados.</p>
     </div>
     <form id="form-acesso">
       <div class="form-grid">

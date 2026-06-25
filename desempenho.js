@@ -73,7 +73,7 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
 
     // Nome
     const nomeVend = isAdmin()
-      ? (ativas.find(x => x.id === vendedoraId)?.nome || 'Vendedora')
+      ? (ativas.find(x => x.id === vendedoraId)?.nome || 'Vendedor')
       : (currentProfile?.nome || 'Você');
 
     // Seletor (admin only)

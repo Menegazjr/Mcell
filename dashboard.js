@@ -52,8 +52,20 @@ async function renderDashboard() {
 
     const vendedoraSection = isAdmin() ? renderVendedoraCards(ativas, byVend, metaIndApar, distrib) : '';
 
+    // Aviso de meta não definida (admin only)
+    const avisoMeta = isAdmin() && !metaAtual ? `
+      <div class="meta-aviso" id="meta-aviso">
+        <div class="meta-aviso-icon">◎</div>
+        <div class="meta-aviso-content">
+          <div class="meta-aviso-title">Nenhuma meta definida para ${mesToNomeCompleto(currentMes)}/${currentAno}</div>
+          <div class="meta-aviso-sub">Defina a meta do mês para acompanhar o desempenho das vendedoras.</div>
+        </div>
+        <button class="btn-primary btn-sm" id="btn-ir-metas">Definir Meta</button>
+      </div>` : '';
+
     if (isAdmin()) {
       page.innerHTML = `
+        ${avisoMeta}
         <div class="cards-grid">
           ${card('Total Faturado',     fmt(totalFat),       `${totalApar} aparelhos vendidos`, 'blue',   null)}
           ${card('Aparelhos Vendidos', fmtNum(totalApar),   `Meta: ${fmtNum(metaApar)} un.`,   'green',  pctApar)}
@@ -80,7 +92,7 @@ async function renderDashboard() {
         ${vendedoraSection}
       `;
     } else {
-      // Vendedora: só aparelhos, sem faturamento, sem ranking
+      // Vendedor: só aparelhos, sem faturamento, sem ranking
       const meuId = getVendedoraId();
       const minhasVendas = vendas.filter(v => v.vendedora_id === meuId);
       const meuApar = minhasVendas.reduce((s,v) => s + (v.quantidade||1), 0);
@@ -95,6 +107,11 @@ async function renderDashboard() {
         </div>
       `;
     }
+
+    // Botão ir para metas
+    document.getElementById('btn-ir-metas')?.addEventListener('click', () => {
+      navigateTo('metas');
+    });
 
     // Charts
     if (chartVendedoras) { chartVendedoras.destroy(); chartVendedoras = null; }

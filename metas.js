@@ -36,7 +36,7 @@ async function renderMetas() {
         ${metaAtual ? `
           <div class="cards-grid" style="margin-bottom:20px">
             ${cardMeta('Meta Total', fmtNum(metaApar) + ' un.', 'green')}
-            ${cardMeta('Vendedoras Ativas', vendedorasAtivas.length, 'blue')}
+            ${cardMeta('Vendedores Ativos', vendedorasAtivas.length, 'blue')}
             ${cardMeta('Com meta manual', metasInd.filter(m=>m.is_manual).length, 'yellow')}
             ${cardMeta('Meta auto (cada)', fmtNum(distrib.metaAuto) + ' un.', 'blue')}
           </div>
@@ -47,7 +47,7 @@ async function renderMetas() {
             <table>
               <thead>
                 <tr>
-                  <th>Vendedora</th>
+                  <th>Vendedor</th>
                   <th>Meta</th>
                   <th>Tipo</th>
                   <th>Ações</th>
@@ -150,11 +150,14 @@ async function renderMetas() {
 
 // ── CÁLCULO DE DISTRIBUIÇÃO ────────────────────
 function calcDistribuicao(metaTotal, vendedoras, metasInd) {
-  const manuais    = metasInd.filter(m => m.is_manual);
+  // Considera apenas metas manuais de vendedores que estão na lista ativa atual
+  const idsAtivos  = new Set(vendedoras.map(v => v.id));
+  const manuais    = metasInd.filter(m => m.is_manual && idsAtivos.has(m.vendedora_id));
+
   const totalManual = manuais.reduce((s, m) => s + parseFloat(m.meta_aparelhos), 0);
-  const numAuto    = vendedoras.length - manuais.length;
-  const restante   = Math.max(0, metaTotal - totalManual);
-  const metaAuto   = numAuto > 0 ? restante / numAuto : 0;
+  const numAuto      = Math.max(0, vendedoras.length - manuais.length);
+  const restante     = Math.max(0, metaTotal - totalManual);
+  const metaAuto     = numAuto > 0 ? restante / numAuto : 0;
 
   const lista = vendedoras.map(v => {
     const ind = manuais.find(m => m.vendedora_id === v.id);
