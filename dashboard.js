@@ -53,7 +53,7 @@ async function renderDashboard() {
     const vendedoraSection = isAdmin() ? renderVendedoraCards(ativas, byVend, metaIndApar, distrib) : '';
 
     // Aviso de meta não definida (admin only)
-    const avisoMeta = isAdmin() && !metaAtual ? `
+    const avisoMeta = isAdmin() && !meta ? `
       <div class="meta-aviso" id="meta-aviso">
         <div class="meta-aviso-icon">◎</div>
         <div class="meta-aviso-content">
