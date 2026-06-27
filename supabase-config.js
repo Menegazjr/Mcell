@@ -131,6 +131,35 @@ const db = {
     if (error) throw error;
   },
 
+  // Snapshot de distribuição (congelado até recalcular)
+  async getMetasSnapshot(mes, ano) {
+    const { data, error } = await _supabase
+      .from('metas_snapshot')
+      .select('*, vendedoras(nome)')
+      .eq('mes', mes).eq('ano', ano);
+    if (error) throw error;
+    return data || [];
+  },
+  async salvarSnapshot(mes, ano, lista) {
+    // Remove snapshot anterior do mês
+    await _supabase.from('metas_snapshot').delete().eq('mes', mes).eq('ano', ano);
+    // Insere o novo
+    if (lista.length === 0) return;
+    const rows = lista.map(item => ({
+      mes, ano,
+      vendedora_id:   item.vendedora_id,
+      meta_aparelhos: item.meta,
+      is_manual:      item.isManual,
+      is_extra:       item.isExtra
+    }));
+    const { error } = await _supabase.from('metas_snapshot').insert(rows);
+    if (error) throw error;
+  },
+  async limparSnapshot(mes, ano) {
+    const { error } = await _supabase.from('metas_snapshot').delete().eq('mes', mes).eq('ano', ano);
+    if (error) throw error;
+  },
+
   // Profiles
   async getProfile(userId) {
     const { data, error } = await _supabase

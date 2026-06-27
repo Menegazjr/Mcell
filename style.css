@@ -1674,3 +1674,46 @@ tbody tr:hover td { background: var(--border); }
     width: 32px;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   AVISO META NÃO DEFINIDA
+════════════════════════════════════════════════ */
+.meta-aviso {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f59e0b12;
+  border: 1px solid #f59e0b50;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  animation: fadeIn 0.3s ease;
+}
+.meta-aviso-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  color: var(--yellow);
+}
+.meta-aviso-content { flex: 1; min-width: 0; }
+.meta-aviso-title {
+  font-family: var(--font-head);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--yellow);
+  margin-bottom: 3px;
+}
+.meta-aviso-sub {
+  font-size: 0.82rem;
+  color: var(--text2);
+}
+@media (max-width: 480px) {
+  .meta-aviso { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ═══════════════════════════════════════════════
+   META FIXA / RECALCULAR
+════════════════════════════════════════════════ */
+#btn-recalcular-meta {
+  white-space: nowrap;
+}

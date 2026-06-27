@@ -257,7 +257,9 @@
 <script src="relatorios.js"></script>
 <script src="app.js"></script>
 <script>
-  // Registrar Service Worker com auto-update
+  // Registrar Service Worker com update manual (nunca automático)
+  let _userClickedUpdate = false; // só recarrega depois do clique no botão
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/Mcell/sw.js').then(reg => {
@@ -266,7 +268,8 @@
         // Verifica atualização a cada 60 segundos
         setInterval(() => reg.update(), 60000);
 
-        // Quando novo SW estiver esperando, mostra banner imediatamente
+        // Quando novo SW estiver instalado e esperando, mostra banner
+        // NÃO ativa automaticamente — espera o clique do usuário
         reg.addEventListener('updatefound', () => {
           const novo = reg.installing;
           novo.addEventListener('statechange', () => {
@@ -277,23 +280,58 @@
           });
         });
 
-        // Verifica na abertura se há SW esperando
+        // Verifica na abertura se já há um SW esperando ativação
         if (reg.waiting) {
           window._pendingSW = reg.waiting;
           document.getElementById('update-banner')?.classList.remove('hidden');
         }
       }).catch(e => console.warn('SW falhou:', e));
 
-      // Quando SW assumir controle, recarrega a página
-      let recarregando = false;
+      // Só recarrega quando o usuário JÁ clicou no botão de atualizar
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!recarregando) {
-          recarregando = true;
+        if (_userClickedUpdate) {
           window.location.reload();
         }
       });
     });
   }
+
+  // Botão "Atualizar agora" — único disparador de atualização
+  document.getElementById('btn-update')?.addEventListener('click', () => {
+    const btn      = document.getElementById('btn-update');
+    const progress = document.getElementById('update-progress');
+    const bar      = document.getElementById('update-progress-bar');
+
+    btn.textContent = 'Atualizando…';
+    btn.disabled = true;
+    progress?.classList.remove('hidden');
+
+    // Barra de progresso visível por tempo suficiente para perceber (1.6s)
+    if (bar) {
+      bar.style.width = '0%';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 1.4s cubic-bezier(.4,0,.2,1)';
+        bar.style.width = '100%';
+      });
+    }
+
+    _userClickedUpdate = true;
+
+    // Ativa o novo SW só agora — após o clique
+    setTimeout(() => {
+      if (window._pendingSW) {
+        window._pendingSW.postMessage('skipWaiting');
+      } else {
+        // Fallback: se não há SW pendente detectado, recarrega mesmo assim
+        window.location.reload();
+      }
+    }, 300);
+
+    // Garante o reload mesmo se o controllerchange não disparar por algum motivo
+    setTimeout(() => {
+      if (_userClickedUpdate) window.location.reload();
+    }, 2200);
+  });
 
   // Banner offline
   function updateOnlineStatus() {

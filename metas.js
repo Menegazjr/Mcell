@@ -21,7 +21,11 @@ async function renderMetas() {
     ]);
 
     const metaApar  = metaAtual?.meta_aparelhos || 0;
-    const distrib   = calcDistribuicao(metaApar, vendedorasAtivas, metasInd);
+    const distrib   = await getDistribuicao(metaApar, vendedorasAtivas, metasInd, currentMes, currentAno);
+
+    const statusDistrib = distrib.isFrozen
+      ? `<span class="badge badge-yellow" title="Calculado em ${distrib.calculadoEm ? new Date(distrib.calculadoEm).toLocaleString('pt-BR') : ''}">🔒 Fixo</span>`
+      : `<span class="badge badge-blue">🔄 Automático</span>`;
 
     page.innerHTML = `
       <!-- META DO MÊS -->
@@ -42,7 +46,19 @@ async function renderMetas() {
           </div>
 
           <!-- DISTRIBUIÇÃO INDIVIDUAL -->
-          <div class="section-title">Distribuição Individual</div>
+          <div class="panel-header" style="margin-bottom:0">
+            <div class="section-title" style="margin-bottom:0">
+              Distribuição Individual ${statusDistrib}
+            </div>
+            <button class="btn-ghost btn-sm" id="btn-recalcular-meta" title="Recalcula a distribuição com os vendedores ativos atuais">
+              🔄 Recalcular
+            </button>
+          </div>
+          <p style="color:var(--text2);font-size:0.78rem;margin:8px 0 16px">
+            ${distrib.isFrozen
+              ? 'A distribuição está <strong>fixa</strong>. Mudanças no número de vendedores não afetam o cálculo até você clicar em Recalcular.'
+              : 'A distribuição ainda não foi fixada — calculando automaticamente. Clique em Recalcular para fixar o resultado atual.'}
+          </p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -125,6 +141,28 @@ async function renderMetas() {
       abrirFormMeta(metaAtual);
     });
 
+    // Recalcular distribuição (fixa o resultado atual)
+    document.getElementById('btn-recalcular-meta')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-recalcular-meta');
+      const confirmMsg = distrib.isFrozen
+        ? 'Recalcular vai substituir a distribuição fixa atual pelos vendedores ativos agora. Continuar?'
+        : 'Fixar a distribuição atual? Ela não mudará mais até você recalcular novamente.';
+      if (!confirm(confirmMsg)) return;
+
+      btn.textContent = 'Calculando…';
+      btn.disabled = true;
+      try {
+        const liveCalc = calcDistribuicaoLive(metaApar, vendedorasAtivas, metasInd);
+        await db.salvarSnapshot(currentMes, currentAno, liveCalc.lista);
+        toast('Distribuição recalculada e fixada!');
+        renderMetas();
+      } catch (err) {
+        toast('Erro: ' + err.message, 'error');
+        btn.textContent = '🔄 Recalcular';
+        btn.disabled = false;
+      }
+    });
+
     // Definir meta manual
     document.querySelectorAll('.btn-meta-manual').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -137,12 +175,13 @@ async function renderMetas() {
       });
     });
 
-    // Resetar para automático
+    // Resetar para automático (também limpa o snapshot fixo dessa pessoa)
     document.querySelectorAll('.btn-meta-reset').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Resetar para distribuição automática?')) return;
+        if (!confirm('Resetar para distribuição automática? Isso vai recalcular tudo.')) return;
         await db.deleteMetaIndividual(currentMes, currentAno, btn.dataset.id);
-        toast('Meta resetada para automático.');
+        await db.limparSnapshot(currentMes, currentAno);
+        toast('Meta resetada — recalculando automaticamente.');
         renderMetas();
       });
     });
@@ -158,8 +197,8 @@ async function renderMetas() {
   }
 }
 
-// ── CÁLCULO DE DISTRIBUIÇÃO ────────────────────
-function calcDistribuicao(metaTotal, vendedoras, metasInd) {
+// ── CÁLCULO DE DISTRIBUIÇÃO (tempo real) ───────
+function calcDistribuicaoLive(metaTotal, vendedoras, metasInd) {
   // Proteção contra dados inválidos
   vendedoras = Array.isArray(vendedoras) ? vendedoras : [];
   metasInd   = Array.isArray(metasInd) ? metasInd : [];
@@ -201,6 +240,38 @@ function calcDistribuicao(metaTotal, vendedoras, metasInd) {
   });
 
   return { lista, totalManual, numAuto, metaAuto: parseFloat(metaAuto.toFixed(2)) };
+}
+
+// ── DISTRIBUIÇÃO PRINCIPAL (congelada até recalcular) ──
+// Verifica se existe snapshot salvo; se sim, usa ele (fixo).
+// Se não existir, calcula em tempo real (live) automaticamente.
+async function getDistribuicao(metaTotal, vendedoras, metasInd, mes, ano) {
+  try {
+    const snapshot = await db.getMetasSnapshot(mes, ano);
+    if (snapshot && snapshot.length > 0) {
+      // Usa o snapshot congelado — não recalcula mesmo se vendedores mudarem
+      const lista = snapshot.map(s => ({
+        vendedora_id: s.vendedora_id,
+        nome:         s.vendedoras?.nome || vendedoras.find(v=>v.id===s.vendedora_id)?.nome || '—',
+        meta:         s.is_extra ? null : parseFloat(s.meta_aparelhos),
+        isManual:     s.is_manual,
+        isExtra:      s.is_extra
+      }));
+      const totalManual = lista.filter(l=>l.isManual).reduce((s,l)=>s+l.meta,0);
+      const numAuto      = lista.filter(l=>!l.isManual && !l.isExtra).length;
+      const metaAuto     = lista.find(l=>!l.isManual && !l.isExtra)?.meta || 0;
+      return { lista, totalManual, numAuto, metaAuto, isFrozen: true, calculadoEm: snapshot[0]?.calculado_em };
+    }
+  } catch (e) {
+    console.warn('Snapshot indisponível, usando cálculo live:', e.message);
+  }
+  // Sem snapshot: calcula em tempo real
+  return { ...calcDistribuicaoLive(metaTotal, vendedoras, metasInd), isFrozen: false };
+}
+
+// Mantém compatibilidade: calcDistribuicao = versão live (usada como fallback)
+function calcDistribuicao(metaTotal, vendedoras, metasInd) {
+  return calcDistribuicaoLive(metaTotal, vendedoras, metasInd);
 }
 
 // ── HELPERS VISUAIS ────────────────────────────
@@ -275,13 +346,17 @@ function abrirFormMeta(meta) {
     const btn = e.target.querySelector('button[type=submit]');
     btn.textContent = 'Salvando…'; btn.disabled = true;
     try {
+      const mesForm = parseInt(document.getElementById('fm-mes').value);
+      const anoForm = parseInt(document.getElementById('fm-ano').value);
       await db.upsertMeta({
         ...(isEdit ? { id: meta.id } : {}),
-        mes:            parseInt(document.getElementById('fm-mes').value),
-        ano:            parseInt(document.getElementById('fm-ano').value),
+        mes:            mesForm,
+        ano:            anoForm,
         meta_aparelhos: parseInt(document.getElementById('fm-apar').value)
       });
-      toast('Meta salva!');
+      // Mudou a meta total — limpa o snapshot fixo para forçar novo cálculo
+      await db.limparSnapshot(mesForm, anoForm);
+      toast('Meta salva! Distribuição voltou a ser automática.');
       closeModal();
       renderMetas();
     } catch (err) {
@@ -336,6 +411,8 @@ function abrirFormMetaManual(vendedoraId, nome, metaAtual, isManual) {
         meta_aparelhos: val,
         is_manual:      true
       });
+      // Meta manual mudou — limpa o snapshot para recalcular automaticamente
+      await db.limparSnapshot(currentMes, currentAno);
       toast(`Meta de ${nome} definida: ${fmtNum(val)} aparelhos`);
       closeModal();
       renderMetas();

@@ -26,9 +26,9 @@ async function renderDashboard() {
     const pctApar   = pct(totalApar, metaApar);
     const ticketMedio = totalApar > 0 ? (totalFat / totalApar) : 0;
 
-    // Distribuição real (manual ou automática)
-    const distrib     = typeof calcDistribuicao === 'function'
-      ? calcDistribuicao(metaApar, ativas, metasInd)
+    // Distribuição real (congelada se houver snapshot, senão automática)
+    const distrib     = typeof getDistribuicao === 'function'
+      ? await getDistribuicao(metaApar, ativas, metasInd, currentMes, currentAno)
       : { lista: [], metaAuto: metaApar / numAtivas };
     const metaIndApar = distrib.metaAuto;
 

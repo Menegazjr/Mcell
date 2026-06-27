@@ -47,10 +47,10 @@ async function _renderDesemp(page, vendedoraId, ativasPreload = []) {
 
     const ativas = vendedoras.filter(v => v.status === 'ativa');
 
-    // Meta individual
+    // Meta individual (congelada se houver snapshot, senão automática)
     const metaApar   = meta?.meta_aparelhos || 0;
-    const distrib    = typeof calcDistribuicao === 'function'
-      ? calcDistribuicao(metaApar, ativas, metasInd)
+    const distrib    = typeof getDistribuicao === 'function'
+      ? await getDistribuicao(metaApar, ativas, metasInd, currentMes, currentAno)
       : { lista: [], metaAuto: metaApar / (ativas.length || 1) };
     const metaInd     = distrib.lista.find(d => d.vendedora_id === vendedoraId);
     const isExtra     = metaInd?.isExtra || false;
@@ -228,16 +228,22 @@ function cardDesemp(label, value, sub, progress, accent) {
 function renderUltimasVendas(vendas) {
   const ultimas = [...vendas].slice(0, 6);
   if (!ultimas.length) return `<div class="empty-state" style="padding:20px"><p>Nenhuma venda ainda.</p></div>`;
-  return ultimas.map(v => `
+  return ultimas.map(v => {
+    // Usa calcTotal (valor pago + entradas) se disponível, senão calcula direto
+    const total = typeof calcTotal === 'function'
+      ? calcTotal(v)
+      : (parseFloat(v.valor||0) + parseFloat(v.valor_entrada||0)) * (v.quantidade||1);
+    return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
         <div style="font-size:0.85rem;font-weight:600">${v.modelo_iphone}</div>
         <div style="font-size:0.75rem;color:var(--text2)">${fmtDate(v.data_venda)} · ${v.quantidade||1} un.</div>
       </div>
       <div style="font-family:var(--font-head);font-weight:700;font-size:0.9rem;color:var(--blue)">
-        ${fmt((v.valor||0)*(v.quantidade||1))}
+        ${fmt(total)}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderMotivacao(p1, faltaApar) {
