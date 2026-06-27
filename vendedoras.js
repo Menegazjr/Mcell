@@ -39,9 +39,10 @@ async function renderVendedoras() {
       }));
     }
 
-    const admins    = users.filter(u => u.role === 'admin');
-    const comAcesso = new Set(users.filter(u => u.vendedora_id).map(u => u.vendedora_id));
-    const isMaster  = users.find(u => u.id === currentUser?.id)?.is_master || false;
+    const admins      = users.filter(u => u.role === 'admin');
+    // Map: vendedora_id -> userId (para poder revogar o acesso certo)
+    const acessoMap    = new Map(users.filter(u => u.vendedora_id).map(u => [u.vendedora_id, u.id]));
+    const isMaster    = users.find(u => u.id === currentUser?.id)?.is_master || false;
 
     page.innerHTML = `
       <!-- ABAS -->
@@ -62,7 +63,7 @@ async function renderVendedoras() {
             <button class="btn-primary btn-sm" id="btn-nova-vendedora">+ Novo Vendedor</button>
           </div>
           <div class="table-wrap">
-            ${renderTabelaVendedoras(vendedoras, comAcesso)}
+            ${renderTabelaVendedoras(vendedoras, acessoMap)}
           </div>
         </div>
       </div>
@@ -132,6 +133,30 @@ async function renderVendedoras() {
       });
     });
 
+    // Revogar acesso do vendedor (mantém o cadastro, remove só o login)
+    document.querySelectorAll('.btn-revogar-vend').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const nome   = btn.dataset.nome;
+        const userId = btn.dataset.userid;
+        if (!confirm(`Revogar o acesso de ${nome} ao sistema? O cadastro do vendedor será mantido, só o login será removido.`)) return;
+
+        btn.textContent = 'Revogando…';
+        btn.disabled = true;
+        try {
+          const { data, error } = await _supabase.functions.invoke('create-user', {
+            body: { action: 'delete', userId }
+          });
+          if (error || data?.error) throw new Error(data?.error || error?.message);
+          toast(`Acesso de ${nome} revogado.`);
+          renderVendedoras();
+        } catch (err) {
+          toast('Erro: ' + err.message, 'error');
+          btn.textContent = 'Revogar Acesso';
+          btn.disabled = false;
+        }
+      });
+    });
+
     // ── ADMINS ────────────────────────────────────
     document.getElementById('btn-novo-admin').addEventListener('click', () => {
       abrirFormAdmin(null);
@@ -165,7 +190,7 @@ async function renderVendedoras() {
 }
 
 // ── TABELA VENDEDORAS ──────────────────────────
-function renderTabelaVendedoras(vendedoras, comAcesso) {
+function renderTabelaVendedoras(vendedoras, acessoMap) {
   if (!vendedoras.length) return `
     <div class="empty-state">
       <div class="icon">◉</div>
@@ -173,7 +198,8 @@ function renderTabelaVendedoras(vendedoras, comAcesso) {
     </div>`;
 
   const rows = vendedoras.map(v => {
-    const temAcesso = comAcesso.has(v.id);
+    const temAcesso = acessoMap.has(v.id);
+    const userIdAcesso = acessoMap.get(v.id);
     return `
     <tr>
       <td>
@@ -197,6 +223,7 @@ function renderTabelaVendedoras(vendedoras, comAcesso) {
             ${v.status==='ativa'?'Desativar':'Ativar'}
           </button>
           ${!temAcesso ? `<button class="btn-primary btn-sm btn-criar-acesso" data-id="${v.id}">+ Acesso</button>` : ''}
+          ${temAcesso ? `<button class="btn-danger btn-sm btn-revogar-vend" data-id="${v.id}" data-userid="${userIdAcesso}" data-nome="${v.nome}">Revogar Acesso</button>` : ''}
           <button class="btn-danger btn-sm btn-del-vend" data-id="${v.id}">Excluir</button>
         </div>
       </td>

@@ -246,17 +246,24 @@ function calcDistribuicaoLive(metaTotal, vendedoras, metasInd) {
 // Verifica se existe snapshot salvo; se sim, usa ele (fixo).
 // Se não existir, calcula em tempo real (live) automaticamente.
 async function getDistribuicao(metaTotal, vendedoras, metasInd, mes, ano) {
+  vendedoras = Array.isArray(vendedoras) ? vendedoras : [];
+  const idsAtivosAgora = new Set(vendedoras.map(v => v.id));
+
   try {
     const snapshot = await db.getMetasSnapshot(mes, ano);
     if (snapshot && snapshot.length > 0) {
       // Usa o snapshot congelado — não recalcula mesmo se vendedores mudarem
-      const lista = snapshot.map(s => ({
-        vendedora_id: s.vendedora_id,
-        nome:         s.vendedoras?.nome || vendedoras.find(v=>v.id===s.vendedora_id)?.nome || '—',
-        meta:         s.is_extra ? null : parseFloat(s.meta_aparelhos),
-        isManual:     s.is_manual,
-        isExtra:      s.is_extra
-      }));
+      // MAS filtra apenas quem ainda está ativo agora (desativados saem da lista,
+      // sem disparar recálculo dos demais valores fixos)
+      const lista = snapshot
+        .filter(s => idsAtivosAgora.has(s.vendedora_id))
+        .map(s => ({
+          vendedora_id: s.vendedora_id,
+          nome:         s.vendedoras?.nome || vendedoras.find(v=>v.id===s.vendedora_id)?.nome || '—',
+          meta:         s.is_extra ? null : parseFloat(s.meta_aparelhos),
+          isManual:     s.is_manual,
+          isExtra:      s.is_extra
+        }));
       const totalManual = lista.filter(l=>l.isManual).reduce((s,l)=>s+l.meta,0);
       const numAuto      = lista.filter(l=>!l.isManual && !l.isExtra).length;
       const metaAuto     = lista.find(l=>!l.isManual && !l.isExtra)?.meta || 0;
