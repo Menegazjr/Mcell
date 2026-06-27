@@ -4,7 +4,7 @@
 // Não bloqueia nunca — sempre retorna algo
 // ═══════════════════════════════════════════════
 
-const CACHE_VERSION = 'mcell-v35';
+const CACHE_VERSION = 'mcell-v36';
 
 const STATIC_FILES = [
   '/Mcell/',
@@ -21,6 +21,7 @@ const STATIC_FILES = [
   '/Mcell/desempenho.js',
   '/Mcell/banco.js',
   '/Mcell/perfil.js',
+  '/Mcell/conquistas.js',
   '/Mcell/logomcell.png',
   '/Mcell/icon-pwa.png',
   '/Mcell/favicon.ico',

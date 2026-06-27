@@ -300,8 +300,10 @@ async function renderVendas() {
           document.getElementById('v-modelo').value,
           document.getElementById('v-arm').value
         );
+        const vendedoraSelecionada = document.getElementById('v-vendedora').value;
+
         await db.insertVenda({
-          vendedora_id:     document.getElementById('v-vendedora').value,
+          vendedora_id:     vendedoraSelecionada,
           data_venda:       document.getElementById('v-data').value,
           modelo_iphone:    modeloFinal,
           valor:            parseFloat(document.getElementById('v-valor').value),
@@ -315,6 +317,11 @@ async function renderVendas() {
         toast('Venda registrada!');
         _entradas = [];
         renderVendas();
+
+        // Verifica conquistas em segundo plano (não bloqueia a tela)
+        if (typeof verificarEAnimar === 'function') {
+          verificarEAnimar(vendedoraSelecionada);
+        }
       } catch (err) {
         toast('Erro: ' + err.message, 'error');
         btn.textContent = 'Registrar Venda'; btn.disabled = false;

@@ -1717,3 +1717,261 @@ tbody tr:hover td { background: var(--border); }
 #btn-recalcular-meta {
   white-space: nowrap;
 }
+
+/* ═══════════════════════════════════════════════
+   CONQUISTAS — PONTOS NO MENU
+════════════════════════════════════════════════ */
+.user-pontos {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--yellow);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════
+   CONQUISTAS — PÁGINA
+════════════════════════════════════════════════ */
+.conquista-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.conquista-hero-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+.conquista-hero-info { flex: 1; min-width: 0; }
+.conquista-hero-nome {
+  font-family: var(--font-head);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.conquista-hero-sub {
+  font-size: 0.83rem;
+  color: var(--text2);
+  margin-top: 2px;
+}
+.conquista-hero-pontos {
+  text-align: center;
+  flex-shrink: 0;
+}
+.pontos-num {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--yellow);
+  line-height: 1;
+}
+.pontos-label {
+  font-size: 0.7rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.conquista-progress-bar {
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+}
+.conquista-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--yellow));
+  border-radius: 99px;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+
+.conquista-categoria { margin-bottom: 28px; }
+.conquista-cat-titulo {
+  font-family: var(--font-head);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.conquista-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.conquista-badge {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.conquista-badge:hover {
+  transform: translateY(-3px);
+  border-color: var(--border2);
+}
+.conquista-badge.locked { opacity: 0.5; }
+.conquista-badge.locked .conquista-badge-icon { filter: grayscale(1); }
+.conquista-badge.unlocked {
+  border-color: var(--yellow)50;
+  background: linear-gradient(135deg, var(--bg2), #f59e0b08);
+}
+.conquista-badge-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+.conquista-badge-nome {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.conquista-badge-pontos {
+  font-size: 0.72rem;
+  color: var(--text2);
+  font-weight: 600;
+}
+.conquista-badge.unlocked .conquista-badge-pontos { color: var(--yellow); }
+
+/* ═══════════════════════════════════════════════
+   ANIMAÇÃO DE DESBLOQUEIO
+════════════════════════════════════════════════ */
+.conquista-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+.conquista-overlay.conquista-fechando {
+  animation: fadeOut 0.3s ease forwards;
+}
+@keyframes fadeOut { to { opacity: 0; } }
+
+.conquista-confete {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confete-piece {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 14px;
+  opacity: 0.9;
+  animation: confete-fall linear forwards;
+}
+@keyframes confete-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.conquista-modal {
+  position: relative;
+  background: var(--bg2);
+  border: 1px solid var(--yellow)40;
+  border-radius: 24px;
+  padding: 40px 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 80px #00000080, 0 0 40px var(--yellow)20;
+  animation: conquista-pop 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes conquista-pop {
+  0%   { transform: scale(0.6) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.conquista-badge-grande {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.conquista-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--yellow)40, transparent 70%);
+  animation: conquista-glow-pulse 1.8s ease-in-out infinite;
+}
+.conquista-glow.locked {
+  background: radial-gradient(circle, var(--text3)20, transparent 70%);
+  animation: none;
+}
+@keyframes conquista-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%      { transform: scale(1.3); opacity: 1; }
+}
+.conquista-icone-grande {
+  font-size: 4rem;
+  position: relative;
+  z-index: 1;
+  animation: conquista-icon-bounce 0.6s ease 0.2s;
+}
+@keyframes conquista-icon-bounce {
+  0%   { transform: scale(0) rotate(-180deg); }
+  60%  { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.conquista-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.conquista-nome-grande {
+  font-family: var(--font-head);
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.conquista-desc-grande {
+  font-size: 0.88rem;
+  color: var(--text2);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.conquista-pontos-grande {
+  display: inline-block;
+  background: var(--yellow)20;
+  border: 1px solid var(--yellow)50;
+  color: var(--yellow);
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 6px 18px;
+  border-radius: 99px;
+  margin-bottom: 16px;
+}
+.conquista-mais {
+  font-size: 0.82rem;
+  color: var(--blue);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+  .conquista-grid { grid-template-columns: repeat(2, 1fr); }
+  .conquista-hero { padding: 16px; }
+  .conquista-modal { padding: 32px 20px; }
+}

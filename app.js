@@ -94,7 +94,8 @@ function navigateTo(page) {
     relatorios:  'Relatórios',
     desempenho:  'Meu Desempenho',
     banco:       'Uso do Banco',
-    perfil:      'Meu Perfil'
+    perfil:      'Meu Perfil',
+    conquistas:  'Conquistas'
   };
   document.getElementById('topbar-title').textContent = titles[page] || page;
 
@@ -128,6 +129,7 @@ function refreshCurrentPage() {
     case 'desempenho': renderDesempenho(); break;
     case 'banco':      renderBanco();      break;
     case 'perfil':     renderPerfil();     break;
+    case 'conquistas': renderConquistas(); break;
   }
 }
 

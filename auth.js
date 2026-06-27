@@ -101,6 +101,25 @@ async function loadUserProfile(user) {
 
   // Expor is_master globalmente
   window._isMaster = currentProfile?.is_master || false;
+
+  // Pontos de conquistas no menu lateral (vendedora vê os seus)
+  if (!adminOnly && currentProfile?.vendedora_id && typeof db?.getConquistasDesbloqueadas === 'function') {
+    try {
+      const [desbloqueadas, catalogo] = await Promise.all([
+        db.getConquistasDesbloqueadas(currentProfile.vendedora_id),
+        typeof getCatalogo === 'function' ? getCatalogo() : db.getCatalogoConquistas()
+      ]);
+      const ids = new Set(desbloqueadas.map(d => d.conquista_id));
+      const pontos = catalogo.filter(c => ids.has(c.id)).reduce((s,c) => s + c.pontos, 0);
+      const pontosEl = document.getElementById('user-pontos');
+      if (pontosEl) {
+        pontosEl.textContent = `⭐ ${pontos} pts`;
+        pontosEl.classList.remove('hidden');
+      }
+    } catch (e) {
+      console.warn('Pontos indisponíveis:', e.message);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════

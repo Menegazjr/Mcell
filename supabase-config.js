@@ -238,3 +238,111 @@ function closeModal() {
 // Current period (global)
 let currentMes = new Date().getMonth() + 1;
 let currentAno = new Date().getFullYear();
+
+// ── CONQUISTAS ─────────────────────────────────
+Object.assign(db, {
+  async getCatalogoConquistas() {
+    const { data, error } = await _supabase
+      .from('conquistas')
+      .select('*')
+      .order('ordem');
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getConquistasDesbloqueadas(vendedoraId) {
+    const { data, error } = await _supabase
+      .from('conquistas_usuario')
+      .select('*')
+      .eq('vendedora_id', vendedoraId);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async desbloquearConquista(vendedoraId, conquistaId) {
+    const { data, error } = await _supabase
+      .from('conquistas_usuario')
+      .upsert({
+        vendedora_id: vendedoraId,
+        conquista_id: conquistaId,
+        visto: false
+      }, { onConflict: 'vendedora_id,conquista_id', ignoreDuplicates: true })
+      .select();
+    if (error) throw error;
+    return data;
+  },
+
+  async marcarConquistaVista(vendedoraId, conquistaId) {
+    const { error } = await _supabase
+      .from('conquistas_usuario')
+      .update({ visto: true })
+      .eq('vendedora_id', vendedoraId)
+      .eq('conquista_id', conquistaId);
+    if (error) throw error;
+  },
+
+  // Dados agregados de uma vendedora para checar critérios
+  async getStatsParaConquistas(vendedoraId) {
+    // Total de aparelhos vendidos (histórico completo)
+    const { data: vendas, error: errV } = await _supabase
+      .from('vendas')
+      .select('data_venda, quantidade')
+      .eq('vendedora_id', vendedoraId);
+    if (errV) throw errV;
+
+    const totalAparelhos = (vendas || []).reduce((s, v) => s + (v.quantidade || 1), 0);
+
+    // Máximo vendido em um único dia
+    const porDia = {};
+    (vendas || []).forEach(v => {
+      porDia[v.data_venda] = (porDia[v.data_venda] || 0) + (v.quantidade || 1);
+    });
+    const maxDia = Object.values(porDia).reduce((m, v) => Math.max(m, v), 0);
+
+    return { totalAparelhos, maxDia };
+  },
+
+  // Conta quantos meses essa vendedora bateu a meta (histórico)
+  async getMetasBatidasCount(vendedoraId) {
+    const { data: metas, error } = await _supabase
+      .from('metas')
+      .select('mes, ano, meta_aparelhos');
+    if (error) throw error;
+
+    let count = 0;
+    let melhorPct = 0;
+
+    for (const m of (metas || [])) {
+      const { data: vendasMes } = await _supabase
+        .from('vendas')
+        .select('quantidade, data_venda')
+        .eq('vendedora_id', vendedoraId)
+        .gte('data_venda', `${m.ano}-${String(m.mes).padStart(2,'0')}-01`)
+        .lte('data_venda', `${m.ano}-${String(m.mes).padStart(2,'0')}-31`);
+
+      const totalMes = (vendasMes || []).reduce((s,v) => s + (v.quantidade||1), 0);
+
+      // Busca a meta individual daquele mês (snapshot ou individual)
+      const { data: metaInd } = await _supabase
+        .from('metas_individuais')
+        .select('meta_aparelhos')
+        .eq('mes', m.mes).eq('ano', m.ano).eq('vendedora_id', vendedoraId)
+        .maybeSingle();
+
+      const { data: snapshot } = await _supabase
+        .from('metas_snapshot')
+        .select('meta_aparelhos')
+        .eq('mes', m.mes).eq('ano', m.ano).eq('vendedora_id', vendedoraId)
+        .maybeSingle();
+
+      const metaUsada = snapshot?.meta_aparelhos ?? metaInd?.meta_aparelhos ?? null;
+      if (metaUsada && metaUsada > 0) {
+        const pct = (totalMes / metaUsada) * 100;
+        if (pct >= 100) count++;
+        if (pct > melhorPct) melhorPct = pct;
+      }
+    }
+
+    return { count, melhorPct };
+  }
+});
