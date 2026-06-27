@@ -172,11 +172,14 @@ async function _renderConquistasPara(page, vendedoraId, ativasPreload = []) {
 
   // Seletor admin
   const seletor = isAdmin() ? `
-    <div class="desemp-selector">
-      <label>Ver conquistas de:</label>
-      <select id="sel-vend-conquista">
-        ${ativas.map(v => `<option value="${v.id}" ${v.id===vendedoraId?'selected':''}>${v.nome}</option>`).join('')}
-      </select>
+    <div class="desemp-selector" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+      <div>
+        <label>Ver conquistas de:</label>
+        <select id="sel-vend-conquista">
+          ${ativas.map(v => `<option value="${v.id}" ${v.id===vendedoraId?'selected':''}>${v.nome}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn-primary btn-sm" id="btn-verificar-todas">🔄 Verificar Todas Agora</button>
     </div>` : '';
 
   // Agrupar por categoria
@@ -220,6 +223,11 @@ async function _renderConquistasPara(page, vendedoraId, ativasPreload = []) {
   document.getElementById('sel-vend-conquista')?.addEventListener('change', async (e) => {
     _selectedVendedoraConquista = e.target.value;
     await _renderConquistasPara(page, e.target.value, ativas);
+  });
+
+  // Verificar todas de uma vez (retroativo)
+  document.getElementById('btn-verificar-todas')?.addEventListener('click', async () => {
+    await verificarTodasVendedoras(ativas, page, vendedoraId);
   });
 
   // Clique no badge mostra detalhes
@@ -270,4 +278,77 @@ function abrirDetalheConquista(c, desbloqueado, dataDesbloqueio) {
       <button class="btn-ghost btn-full" style="margin-top:16px" onclick="closeModal()">Fechar</button>
     </div>
   `);
+}
+
+// ── VERIFICAÇÃO RETROATIVA EM LOTE (admin) ─────
+async function verificarTodasVendedoras(ativas, page, vendedoraIdAtual) {
+  if (!confirm(`Verificar o histórico completo de ${ativas.length} vendedor(es) e liberar conquistas já conquistadas? Isso pode levar alguns segundos.`)) return;
+
+  // Modal de progresso
+  openModal(`
+    <div style="text-align:center;padding:20px 0">
+      <div class="spinner" style="margin:0 auto 16px"></div>
+      <div class="modal-title" style="text-align:center">Verificando conquistas…</div>
+      <div id="verif-progresso" style="color:var(--text2);font-size:0.87rem;margin-top:8px">Iniciando…</div>
+    </div>
+  `);
+
+  const resultados = [];
+  let i = 0;
+
+  for (const v of ativas) {
+    i++;
+    const progEl = document.getElementById('verif-progresso');
+    if (progEl) progEl.textContent = `Verificando ${v.nome}… (${i}/${ativas.length})`;
+
+    try {
+      const novas = await verificarConquistas(v.id);
+      if (novas.length > 0) {
+        resultados.push({ nome: v.nome, conquistas: novas });
+      }
+    } catch (e) {
+      console.warn(`Erro ao verificar ${v.nome}:`, e.message);
+    }
+  }
+
+  // Mostra resumo final
+  const totalConquistas = resultados.reduce((s,r) => s + r.conquistas.length, 0);
+  const totalPontos = resultados.reduce((s,r) => s + r.conquistas.reduce((sp,c)=>sp+c.pontos,0), 0);
+
+  if (resultados.length === 0) {
+    openModal(`
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:2.5rem;margin-bottom:12px">✅</div>
+        <div class="modal-title" style="text-align:center">Tudo em dia!</div>
+        <div class="modal-subtitle" style="text-align:center">Nenhuma conquista nova foi encontrada — todos já estão com as conquistas atualizadas.</div>
+        <button class="btn-primary btn-full" style="margin-top:16px" onclick="closeModal()">Fechar</button>
+      </div>
+    `);
+  } else {
+    openModal(`
+      <div class="modal-title">🎉 Conquistas Liberadas!</div>
+      <div class="modal-subtitle">${totalConquistas} conquista${totalConquistas>1?'s':''} desbloqueada${totalConquistas>1?'s':''} em ${resultados.length} vendedor(es) · +${totalPontos} pontos no total</div>
+      <div style="max-height:320px;overflow-y:auto;margin:16px 0">
+        ${resultados.map(r => `
+          <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;margin-bottom:8px">${r.nome}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${r.conquistas.map(c => `
+                <span class="badge badge-yellow" style="font-size:0.78rem">${c.icone} ${c.nome} (+${c.pontos})</span>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn-primary btn-full" id="btn-fechar-resultado">Concluir</button>
+    `);
+    document.getElementById('btn-fechar-resultado').addEventListener('click', () => {
+      closeModal();
+      _renderConquistasPara(page, vendedoraIdAtual, ativas);
+    });
+    return;
+  }
+
+  closeModal();
+  _renderConquistasPara(page, vendedoraIdAtual, ativas);
 }
