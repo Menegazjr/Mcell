@@ -148,7 +148,8 @@ const db = {
     const rows = lista.map(item => ({
       mes, ano,
       vendedora_id:   item.vendedora_id,
-      meta_aparelhos: item.meta,
+      // Vendedores extra não têm meta — salva 0 em vez de null (mais seguro)
+      meta_aparelhos: item.isExtra ? 0 : (item.meta ?? 0),
       is_manual:      item.isManual,
       is_extra:       item.isExtra
     }));
