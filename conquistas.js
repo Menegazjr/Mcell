@@ -246,6 +246,7 @@ function renderBadgeConquista(c, desbloqueado, dataDesbloqueio) {
     <div class="conquista-badge ${desbloqueado ? 'unlocked' : 'locked'}" data-id="${c.id}">
       <div class="conquista-badge-icon">${desbloqueado ? c.icone : '🔒'}</div>
       <div class="conquista-badge-nome">${c.nome}</div>
+      <div class="conquista-badge-desc">${c.descricao}</div>
       <div class="conquista-badge-pontos">${c.pontos} pts</div>
     </div>`;
 }

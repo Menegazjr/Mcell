@@ -1833,6 +1833,16 @@ tbody tr:hover td { background: var(--border); }
   margin-bottom: 4px;
   line-height: 1.3;
 }
+.conquista-badge-desc {
+  font-size: 0.7rem;
+  color: var(--text2);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+.conquista-badge.locked .conquista-badge-desc {
+  color: var(--text3);
+}
 .conquista-badge-pontos {
   font-size: 0.72rem;
   color: var(--text2);
