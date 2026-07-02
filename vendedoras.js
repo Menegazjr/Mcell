@@ -133,6 +133,13 @@ async function renderVendedoras() {
       });
     });
 
+    // Editar acesso (e-mail e senha) de vendedor
+    document.querySelectorAll('.btn-edit-acesso').forEach(btn => {
+      btn.addEventListener('click', () => {
+        abrirFormEditarAcessoVendedor(btn.dataset.userid, btn.dataset.nome);
+      });
+    });
+
     // Revogar acesso do vendedor (mantém o cadastro, remove só o login)
     document.querySelectorAll('.btn-revogar-vend').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -223,7 +230,8 @@ function renderTabelaVendedoras(vendedoras, acessoMap) {
             ${v.status==='ativa'?'Desativar':'Ativar'}
           </button>
           ${!temAcesso ? `<button class="btn-primary btn-sm btn-criar-acesso" data-id="${v.id}">+ Acesso</button>` : ''}
-          ${temAcesso ? `<button class="btn-danger btn-sm btn-revogar-vend" data-id="${v.id}" data-userid="${userIdAcesso}" data-nome="${v.nome}">Revogar Acesso</button>` : ''}
+          ${temAcesso ? `<button class="btn-ghost btn-sm btn-edit-acesso" data-id="${v.id}" data-userid="${userIdAcesso}" data-nome="${v.nome}">Editar Acesso</button>` : ''}
+          ${temAcesso ? `<button class="btn-danger btn-sm btn-revogar-vend" data-id="${v.id}" data-userid="${userIdAcesso}" data-nome="${v.nome}">Revogar</button>` : ''}
           <button class="btn-danger btn-sm btn-del-vend" data-id="${v.id}">Excluir</button>
         </div>
       </td>
@@ -606,6 +614,89 @@ function abrirFormEditAdmin(userId, nomeAtual, emailAtual) {
       closeModal();
       vendedorasTab = 'admins';
       renderVendedoras();
+    } catch (err) {
+      errEl.textContent = 'Erro: ' + err.message;
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Salvar';
+      btn.disabled = false;
+    }
+  });
+}
+
+// ── EDITAR ACESSO VENDEDOR (e-mail e senha) ────
+function abrirFormEditarAcessoVendedor(userId, nome) {
+  openModal(`
+    <div class="modal-title">✏️ Editar Acesso</div>
+    <div class="modal-subtitle">Altere o e-mail ou a senha de <strong>${nome}</strong>.</div>
+    <div class="acesso-info">
+      <p>💡 Para redefinir a senha, basta preencher os campos abaixo e salvar. O campo de e-mail é opcional — deixe em branco para não alterar.</p>
+    </div>
+    <form id="form-edit-acesso-vend">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Novo E-mail <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
+          <input type="email" id="eav-email" placeholder="Deixe em branco para não alterar"/>
+        </div>
+        <div class="form-group">
+          <label>Nova Senha <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
+          <input type="password" id="eav-senha" placeholder="Mínimo 6 caracteres"/>
+        </div>
+        <div class="form-group">
+          <label>Confirmar Senha</label>
+          <input type="password" id="eav-senha2" placeholder="Repita a nova senha"/>
+        </div>
+      </div>
+      <div id="eav-error" class="login-error hidden"></div>
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" id="btn-cancel-eav">Cancelar</button>
+        <button type="submit" class="btn-primary">Salvar</button>
+      </div>
+    </form>
+  `);
+
+  document.getElementById('btn-cancel-eav').addEventListener('click', closeModal);
+
+  document.getElementById('form-edit-acesso-vend').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn    = e.target.querySelector('button[type=submit]');
+    const errEl  = document.getElementById('eav-error');
+    const email  = document.getElementById('eav-email').value.trim();
+    const senha  = document.getElementById('eav-senha').value;
+    const senha2 = document.getElementById('eav-senha2').value;
+
+    errEl.classList.add('hidden');
+
+    if (!email && !senha) {
+      errEl.textContent = 'Preencha ao menos o e-mail ou a senha para alterar.';
+      errEl.classList.remove('hidden'); return;
+    }
+    if (senha && senha.length < 6) {
+      errEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+      errEl.classList.remove('hidden'); return;
+    }
+    if (senha && senha !== senha2) {
+      errEl.textContent = 'As senhas não coincidem.';
+      errEl.classList.remove('hidden'); return;
+    }
+
+    btn.textContent = 'Salvando…'; btn.disabled = true;
+
+    try {
+      if (email) {
+        const { data, error } = await _supabase.functions.invoke('create-user', {
+          body: { action: 'update_email', userId, email }
+        });
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+      }
+      if (senha) {
+        const { data, error } = await _supabase.functions.invoke('create-user', {
+          body: { action: 'update_password', userId, password: senha }
+        });
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+      }
+
+      toast(`Acesso de ${nome} atualizado com sucesso!`);
+      closeModal();
     } catch (err) {
       errEl.textContent = 'Erro: ' + err.message;
       errEl.classList.remove('hidden');
